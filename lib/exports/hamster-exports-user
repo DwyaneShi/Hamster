@@ -1,0 +1,83 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# Export environment variables promised to export in documentation.
+#
+# Unlke lib/exports/hamster-exports-dirs, these exports are dependent on the hamster
+# setup.  This should be sourced only after hamster-setup-core has run.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+# Initially make variables specific to node
+Hamster_make_all_local_dirs_node_specific
+
+# Assume cores same on each node
+hamster_slave_core_count=`cat /proc/cpuinfo | grep processor | wc -l`
+
+if [ "${HADOOP_SETUP}" == "yes" ]
+then
+    if [ ! -f "${HADOOP_CONF_DIR}/masters" ]
+    then 
+        Hamster_output_internal_error "${HADOOP_CONF_DIR}/masters does not exist"
+    fi
+
+    if [ ! -f "${HADOOP_CONF_DIR}/slaves" ]
+    then 
+        Hamster_output_internal_error "${HADOOP_CONF_DIR}/slaves does not exist"
+    fi
+
+    # There are few duplicated exports we do b/c they are needed
+
+    # For jobhistoryserver
+    export HADOOP_MAPRED_HOME=${HADOOP_HOME}
+    export HADOOP_YARN_HOME=${HADOOP_HOME}
+    export HADOOP_YARN_USER="${USER}"
+
+    # Unsure if needed, read about these online
+    export HADOOP_HDFS_HOME=${HADOOP_HOME}
+    export HADOOP_COMMON_HOME=${HADOOP_HOME}
+    export YARN_COMMON_HOME=${HADOOP_HOME}
+    
+    # Why check for file existance?  Possible hamster-setup-core didn't create it yet
+    export HADOOP_MASTER_NODE=`head -1 ${HADOOP_CONF_DIR}/masters`
+
+    Hamster_print HADOOP_MAPRED_HOME
+    Hamster_print HADOOP_YARN_HOME
+    Hamster_print HADOOP_YARN_USER
+    Hamster_print HADOOP_HDFS_HOME
+    Hamster_print HADOOP_COMMON_HOME
+    Hamster_print YARN_COMMON_HOME
+    Hamster_print HADOOP_MASTER_NODE
+    
+    if Hamster_hadoop_filesystem_mode_is_hdfs_type
+    then
+        export HADOOP_NAMENODE=`head -1 ${HADOOP_CONF_DIR}/masters`
+        export HADOOP_NAMENODE_PORT="${default_hadoop_hdfs_namenode_address}"
+        Hamster_print HADOOP_NAMENODE
+        Hamster_print HADOOP_NAMENODE_PORT
+    fi
+    
+    export HADOOP_SLAVE_COUNT=`cat ${HADOOP_CONF_DIR}/slaves|wc -l`
+    
+    export HADOOP_SLAVE_CORE_COUNT=`expr ${hamster_slave_core_count} \* ${HADOOP_SLAVE_COUNT}`
+    Hamster_print HADOOP_SLAVE_COUNT
+    Hamster_print HADOOP_SLAVE_CORE_COUNT
+fi

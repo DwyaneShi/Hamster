@@ -1,0 +1,33 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script is for running the 'testall' facility.  For the most
+# part, it shouldn't be editted.  See job submission files for
+# configuration details.
+
+if [ "${HADOOP_SETUP}" == "yes" ] \
+   && [ "${HADOOP_MODE}" != "setuponly" ] \
+   && ([ "${HADOOP_SETUP_TYPE}" == "MR1" ] || [ "${HADOOP_SETUP_TYPE}" == "MR2" ])
+then
+    echo "*******************************************************"
+    echo "* Running Hadoop Terasort"
+    echo "*******************************************************"
+    (${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-hadoop-terasort)
+fi
+
+exit 0

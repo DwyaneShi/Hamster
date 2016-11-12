@@ -1,0 +1,47 @@
+diff -pruN hadoop-3.0.0-alpha1/libexec/hadoop-functions.sh hadoop-3.0.0-alpha1-modified/libexec/hadoop-functions.sh
+--- hadoop-3.0.0-alpha1/libexec/hadoop-functions.sh	2016-08-30 02:48:19.000000000 -0400
++++ hadoop-3.0.0-alpha1-modified/libexec/hadoop-functions.sh	2016-11-07 14:54:49.000000000 -0500
+@@ -19,6 +19,8 @@
+ declare -a HADOOP_SUBCMD_USAGE
+ declare -a HADOOP_OPTION_USAGE
+ 
++myhostname=`hostname`
++
+ ## @description  Print a message to stderr
+ ## @audience     public
+ ## @stability    stable
+@@ -1375,6 +1377,11 @@ function hadoop_verify_piddir
+     hadoop_error "No pid directory defined."
+     exit 1
+   fi
++  if echo $HADOOP_PID_DIR | grep -q HAMSTERHOSTNAMESUBSTITUTION
++  then
++    orig_hadoop_pid_dir=$HADOOP_PID_DIR
++    HADOOP_PID_DIR=$(echo "$HADOOP_PID_DIR" | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g")
++  fi
+   if [[ ! -w "${HADOOP_PID_DIR}" ]] && [[ ! -d "${HADOOP_PID_DIR}" ]]; then
+     hadoop_error "WARNING: ${HADOOP_PID_DIR} does not exist. Creating."
+     mkdir -p "${HADOOP_PID_DIR}" > /dev/null 2>&1
+@@ -1400,6 +1407,11 @@ function hadoop_verify_logdir
+     hadoop_error "No log directory defined."
+     exit 1
+   fi
++  if echo $HADOOP_LOG_DIR | grep -q HAMSTERHOSTNAMESUBSTITUTION
++  then
++    orig_hadoop_log_dir=$HADOOP_LOG_DIR
++    HADOOP_LOG_DIR=$(echo "$HADOOP_LOG_DIR" | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g")
++  fi
+   if [[ ! -w "${HADOOP_LOG_DIR}" ]] && [[ ! -d "${HADOOP_LOG_DIR}" ]]; then
+     hadoop_error "WARNING: ${HADOOP_LOG_DIR} does not exist. Creating."
+     mkdir -p "${HADOOP_LOG_DIR}" > /dev/null 2>&1
+@@ -2024,6 +2036,10 @@ function hadoop_parse_args
+         confdir=$1
+         shift
+         ((HADOOP_PARSE_COUNTER=HADOOP_PARSE_COUNTER+2))
++        if echo ${confdir} | grep -q HAMSTERHOSTNAMESUBSTITUTION; then
++          orig_hadoop_confdir="${confdir}"
++          confdir=$(echo "${confdir}" | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g")
++        fi
+         if [[ -d "${confdir}" ]]; then
+           # shellcheck disable=SC2034
+           HADOOP_CONF_DIR="${confdir}"

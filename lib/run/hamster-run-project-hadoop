@@ -1,0 +1,664 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# These are functions to be called by hamster-run
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-run
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+
+# Return 0 if service up, 1 if not
+__Hamster_run_check_hadoop_up ()
+{
+    cd ${HADOOP_HOME}
+
+    if Hamster_hdfs_federation_enabled
+    then
+        local exittedsafemodeflag=1
+        
+        for j in `seq 1 ${HDFS_FEDERATION_NAMENODE_COUNT}`
+        do
+            # First namenode is based on master
+            if [ "${j}" == "1" ]
+            then
+                local federationnamenodehost="${HADOOP_MASTER_NODE}"
+            else
+                local numline=`expr ${j} - 1`
+                local federationnamenodehost=`sed -n "${numline}p" ${HADOOP_CONF_DIR}/namenode_hdfs_federation`
+            fi
+
+            ${hadoopcmdprefix}/${dfsadminscript} dfsadmin -fs hdfs://${federationnamenodehost}:${default_hadoop_hdfs_namenode_address} -safemode get 2>&1 | grep -q -i "off"
+            if [ $? -ne 0 ]
+            then
+                exittedsafemodeflag=0
+                break
+            fi
+        done
+
+        if [ "${exittedsafemodeflag}" == "1" ]
+        then
+            return 0
+        fi
+    else
+        ${hadoopcmdprefix}/${dfsadminscript} dfsadmin -safemode get 2>&1 | grep -q -i "off"
+        if [ $? -eq 0 ]
+        then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+Hamster_run_start_hadoop () {
+    if [ "${HADOOP_SETUP}" == "yes" ] && [ "${hamster_run_prior_startup_successful}" == "true" ]
+    then
+        local hdfs_was_setup=0
+
+        cd ${HADOOP_HOME}
+
+        if [ ${HADOOP_MODE} != "setuponly" ]
+        then
+            echo "Starting hadoop"
+            local hadoop_should_be_setup=1
+
+            if Hamster_hadoop_filesystem_mode_is_hdfs_type
+            then
+                if Hamster_hadoop_filesystem_mode_is_hdfs_on_network_type
+                then
+                    # Sets hamster_networkedhdfspath & hamster_hdfs_stored_version_path
+                    Hamster_get_hdfs_stored_version_path
+                    # Sets hamster_networkedhdfspath & hamster_hdfs_stored_nodecount_path
+                    Hamster_get_hdfs_stored_nodecount_path
+
+                    # Older versions of Hamster didn't store this variable
+                    if [ -f ${hamster_hdfs_stored_version_path} ]
+                    then
+                        hdfsstoredversion=`cat ${hamster_hdfs_stored_version_path}`
+
+                        # 0 is =, 1 is >, 2 is <
+                        Hamster_vercomp ${HADOOP_VERSION} ${hdfsstoredversion}
+                        local vercomp_result=$?
+                        if [ "${vercomp_result}" != "0" ]
+                        then
+                            if [ "${vercomp_result}" == "1" ]
+                            then
+                                echo "**** HDFS Issue ****"
+                                echo "HDFS version at mount ${hamster_networkedhdfspath} is older than ${HADOOP_VERSION}."
+                                if [ "${HADOOP_MODE}" != "upgradehdfs" ]
+                                then
+                                    echo "With newer Hadoop versions, you can upgrade HDFS via HADOOP_MODE=upgradehdfs"
+                                    echo "Or if you wish to use a newer Hadoop version without upgrading HDFS, you can setup HDFS on another path"
+                                fi
+                                echo "**** HDFS Issue ****"
+                            else
+                                echo "**** HDFS Issue ****"
+                                echo "HDFS version at mount ${hamster_networkedhdfspath} is newer than ${HADOOP_VERSION}."
+                                echo "Please use a newer Hadoop version."
+                                echo "Or if you wish to use an older Hadoop version, you can setup HDFS on another path"
+                                echo "**** HDFS Issue ****"
+                            fi
+
+                            # or ...vercomp_result == 1 && hadoop_mode == upgradehdfs
+                            if [ "${vercomp_result}" != "1" ] || [ "${HADOOP_MODE}" != "upgradehdfs" ]
+                            then
+                                hadoop_should_be_setup=0
+                            fi
+                        fi
+                    fi
+
+                    # Older nodecounts of Hamster didn't store this variable
+                    if [ -f ${hamster_hdfs_stored_nodecount_path} ]
+                    then
+                        local hdfsstorednodecount=`cat ${hamster_hdfs_stored_nodecount_path}`
+
+                        if [ "${HADOOP_SLAVE_COUNT}" -lt "${hdfsstorednodecount}" ]
+                        then
+                            local ninteypercentnodes=`echo "${hdfsstorednodecount} * .9" | bc -l | xargs printf "%1.0f"`
+                            echo "**** HDFS Issue ****"
+                            echo "HDFS was last built using a larger slave node count of ${hdfsstorednodecount}, compared to this job's ${HADOOP_SLAVE_COUNT}"
+                            echo "Because of this, it is very likely the HDFS Namenode will not be able to find all HDFS blocks."
+
+                            if [ "${HADOOP_SLAVE_COUNT}" -gt "${ninteypercentnodes}" ]
+                            then
+                                echo "The current slave count of ${HADOOP_SLAVE_COUNT} is atleast 90% of ${hdfsstorednodecount}, so HDFS will attempt to be"
+                                echo "started.  However, it is not recommended for future runs and there is still a chance HDFS will not start."
+                            else
+                                echo "If you truly desire to use fewer nodes, setup HDFS on another path or consider going through a decommissioning process to"
+                                echo "reduce the number of nodes your HDFS is built on via HADOOP_MODE=decommissionhdfsnodes."
+                                hadoop_should_be_setup=0
+                            fi
+                            echo "**** HDFS Issue ****"
+                        fi
+                    fi
+                fi
+
+                if [ "${HAMSTER_JOB_TYPE}" == "hadoop" ] && [ "${HADOOP_MODE}" == "upgradehdfs" ]
+                then
+                    local startdfsoptions="-upgrade"
+                fi
+
+                if [ "${hadoop_should_be_setup}" == "1" ]
+                then
+                    # Make variables unspecified for launching
+                    Hamster_make_all_local_dirs_unspecified
+
+                    ${hadoopsetupscriptprefix}/start-dfs.sh ${startdfsoptions}
+                    hdfs_was_setup=1
+
+                    # Make variables specific now within Hamster
+                    Hamster_make_all_local_dirs_node_specific
+                fi
+
+                if [ "${hdfs_was_setup}" == "1" ] \
+                    && Hamster_hadoop_filesystem_mode_is_hdfs_on_network_type
+                then
+                    if [ "${HADOOP_MODE}" != "upgradehdfs" ]
+                    then
+                        rm -f ${hamster_hdfs_stored_version_path}
+                        echo "${HADOOP_VERSION}" > ${hamster_hdfs_stored_version_path}
+                    fi
+
+                    if [ -f ${hamster_hdfs_stored_nodecount_path} ]
+                    then
+                        local nodecount=`cat ${hamster_hdfs_stored_nodecount_path}`
+                        if [ "${nodecount}" -lt "${HADOOP_SLAVE_COUNT}" ]
+                        then
+                            nodecount=${HADOOP_SLAVE_COUNT}
+                        fi
+                    else
+                        local nodecount=${HADOOP_SLAVE_COUNT}
+                    fi
+                    rm -f ${hamster_hdfs_stored_nodecount_path}
+                    echo "${nodecount}" > ${hamster_hdfs_stored_nodecount_path}
+                fi
+            fi
+            
+            if [ "${hadoop_should_be_setup}" == "1" ]
+            then
+                # Make variables unspecified for shutdown
+                Hamster_make_all_local_dirs_unspecified
+
+                if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+                then
+                    ${hadoopsetupscriptprefix}/start-mapred.sh
+                fi
+                
+                if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+                then
+                    ${hadoopsetupscriptprefix}/start-yarn.sh
+                fi
+
+                # Make variables specific now within Hamster
+                Hamster_make_all_local_dirs_node_specific
+                
+                # My rough estimate for setup time is 30 seconds per 128 nodes
+                local sleepwait=`expr ${HADOOP_SLAVE_COUNT} \/ 128 \* 30`
+                if [ ${sleepwait} -lt 30 ]
+                then
+                    sleepwait=30
+                fi
+                echo "Waiting ${sleepwait} seconds to allows Hadoop daemons to setup"
+                sleep ${sleepwait}
+                hamster_run_total_sleep_wait=`expr ${hamster_run_total_sleep_wait} + ${sleepwait}`
+            fi
+        fi
+
+        if [ "${hadoop_should_be_setup}" == "1" ] || [ ${HADOOP_MODE} == "setuponly" ]
+        then
+            echo "*******************************************************"
+            echo "*"
+            echo "* Hadoop Information"
+            echo "*"
+            echo "* You can view your Hadoop status by launching a web browser and pointing to ..."
+            echo "*"
+            if [ ${HADOOP_SETUP_TYPE}  == "MR1" ]
+            then
+                echo "* Jobtracker: http://${HADOOP_MASTER_NODE}:${default_mapred_job_tracker_httpaddress}"
+                echo "*"
+            elif [ ${HADOOP_SETUP_TYPE}  == "MR2" ]
+            then
+                echo "* Yarn Resource Manager: http://${HADOOP_MASTER_NODE}:${default_yarn_resourcemanager_webapp_address}"
+                echo "*"
+                echo "* Job History Server: http://${HADOOP_MASTER_NODE}:${default_hadoop_jobhistoryserver_webapp_address}"
+                echo "*"
+            fi
+            if Hamster_hadoop_filesystem_mode_is_hdfs_type
+            then
+                if Hamster_hdfs_federation_enabled
+                then
+                    for i in `seq 1 ${HDFS_FEDERATION_NAMENODE_COUNT}`
+                    do
+                        # First namenode is based on master
+                        if [ "${i}" == "1" ]
+                        then
+                            local federationnamenodehost="${HADOOP_MASTER_NODE}"
+                        else
+                            local numline=`expr ${i} - 1`
+                            local federationnamenodehost=`sed -n "${numline}p" ${HADOOP_CONF_DIR}/namenode_hdfs_federation`
+                        fi
+                        echo "* HDFS Namenode ${i}: http://${federationnamenodehost}:${default_hadoop_hdfs_namenode_httpaddress}"
+                    done
+                else
+                    echo "* HDFS Namenode: http://${HADOOP_MASTER_NODE}:${default_hadoop_hdfs_namenode_httpaddress}"
+                fi
+                echo "* HDFS DataNode: http://<DATANODE>:${default_hadoop_hdfs_datanode_httpaddress}"
+                echo "*"
+            fi
+            if Hamster_hadoop_filesystem_mode_is_hdfs_type
+            then
+                echo "* HDFS can be accessed directly at:"
+                echo "*"
+                if Hamster_hdfs_federation_enabled
+                then
+                    for i in `seq 1 ${HDFS_FEDERATION_NAMENODE_COUNT}`
+                    do
+                        # First namenode is based on master
+                        if [ "${i}" == "1" ]
+                        then
+                            local federationnamenodehost="${HADOOP_MASTER_NODE}"
+                        else
+                            local numline=`expr ${i} - 1`
+                            local federationnamenodehost=`sed -n "${numline}p" ${HADOOP_CONF_DIR}/namenode_hdfs_federation`
+                        fi
+                        echo "* hdfs://${federationnamenodehost}:${default_hadoop_hdfs_namenode_address}"
+                    done
+                else
+                    echo "*   hdfs://${HADOOP_MASTER_NODE}:${default_hadoop_hdfs_namenode_address}" 
+                fi
+                echo "*" 
+            fi
+            echo "* To access Hadoop directly, you'll want to:"
+            echo "*"
+            echo "*   ${HAMSTER_REMOTE_CMD:-ssh}${HAMSTER_REMOTE_CMD_OPTS:+" "}${HAMSTER_REMOTE_CMD_OPTS} ${HADOOP_MASTER_NODE}"
+            if echo $HAMSTER_SHELL | grep -q csh
+            then
+                echo "*   setenv JAVA_HOME \"${JAVA_HOME}\""
+                echo "*   setenv HADOOP_HOME \"${HADOOP_HOME}\""
+                echo "*   setenv HADOOP_CONF_DIR \"${HADOOP_CONF_DIR}\""
+                if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
+                then
+                    echo "*   setenv HADOOP_CLIENT_OPTS \"-Djava.io.tmpdir=${HADOOP_LOCAL_SCRATCHSPACE_DIR} -XX:-UsePerfData\"" 
+                fi
+            else
+                echo "*   export JAVA_HOME=\"${JAVA_HOME}\""
+                echo "*   export HADOOP_HOME=\"${HADOOP_HOME}\""
+                echo "*   export HADOOP_CONF_DIR=\"${HADOOP_CONF_DIR}\""
+                if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
+                then
+                    echo "*   export HADOOP_CLIENT_OPTS=\"-Djava.io.tmpdir=${HADOOP_LOCAL_SCRATCHSPACE_DIR} -XX:-UsePerfData\"" 
+                fi
+            fi
+            echo "*"
+            echo "* Then you can do as you please.  For example to interact with the Hadoop filesystem:"
+            echo "*" 
+            if echo ${HADOOP_VERSION} | grep -q -E "2\.[0-9]\.[0-9]"
+            then 
+                echo "*   \$HADOOP_HOME/${hadoopcmdprefix}/hdfs dfs ..."
+            else
+                echo "*   \$HADOOP_HOME/${hadoopcmdprefix}/hadoop fs ..."
+            fi
+            echo "*" 
+            echo "* To launch jobs you'll want to:"
+            echo "*" 
+            echo "*   \$HADOOP_HOME/${hadoopcmdprefix}/hadoop jar ..."
+            echo "*" 
+            if [ "${HADOOP_MODE}" == "setuponly" ]
+            then
+                echo "* To setup, login and set environment variables per the"
+                echo "* instructions above, then run:"
+                echo "*"
+                if Hamster_hadoop_filesystem_mode_is_hdfs_type
+                then
+                    echo "*   $HADOOP_HOME/${hadoopsetupscriptprefix}/start-dfs.sh" 
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+                then
+                    echo "*   $HADOOP_HOME/${hadoopsetupscriptprefix}/start-mapred.sh"
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+                then
+                    echo "*   $HADOOP_HOME/${hadoopsetupscriptprefix}/start-yarn.sh"
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+                then
+                    echo "*   $HADOOP_HOME/${hadoopsetupscriptprefix}/start-jobhistoryserver.sh"
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+                then
+                    echo "*   $HADOOP_HOME/${hadoopsetupscriptprefix}/mr-jobhistory-daemon.sh start historyserver"
+                fi
+                echo "*" 
+                echo "* To end/cleanup your session & kill all daemons, login and set"
+                echo "* environment variables per the instructions above, then run:"
+                echo "*" 
+                if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+                then
+                    echo "*   \$HADOOP_HOME/${hadoopsetupscriptprefix}/stop-mapred.sh"
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+                then
+                    echo "*   \$HADOOP_HOME/${hadoopsetupscriptprefix}/stop-yarn.sh"
+                fi
+                if Hamster_hadoop_filesystem_mode_is_hdfs_type
+                then
+                    echo "*   \$HADOOP_HOME/${hadoopsetupscriptprefix}/stop-dfs.sh"
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+                then
+                    echo "*   \$HADOOP_HOME/${hadoopsetupscriptprefix}/stop-jobhistoryserver.sh"
+                fi
+                if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+                then
+                    echo "*   \$HADOOP_HOME/${hadoopsetupscriptprefix}/mr-jobhistory-daemon.sh stop historyserver"
+                fi
+                echo "*" 
+            fi
+            if [ "${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}X" != "X" ]
+            then
+                echo "* If running interactively, sourcing"
+                echo "*"
+                echo "* ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}"
+                echo "*"
+                echo "* will set most common environment variables for your job."
+                echo "*"
+            fi
+            echo "*******************************************************"
+
+            if [ "${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}X" != "X" ]
+            then
+                if echo $HAMSTER_SHELL | grep -q csh
+                then
+                    echo "setenv HADOOP_HOME \"${HADOOP_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "setenv HADOOP_CONF_DIR \"${HADOOP_CONF_DIR}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "setenv HADOOP_LOG_DIR \"${HADOOP_LOG_DIR}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "setenv HADOOP_MASTER_NODE \"${HADOOP_MASTER_NODE}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "setenv HADOOP_SLAVE_COUNT \"${HADOOP_SLAVE_COUNT}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "setenv HADOOP_SLAVE_CORE_COUNT \"${HADOOP_SLAVE_CORE_COUNT}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    if Hamster_hadoop_filesystem_mode_is_hdfs_type
+                    then
+                        echo "setenv HADOOP_NAMENODE \"${HADOOP_NAMENODE}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                        echo "setenv HADOOP_NAMENODE_PORT \"${HADOOP_NAMENODE_PORT}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    fi
+                    echo "setenv HADOOP_VERSION \"${HADOOP_VERSION}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
+                    then
+                        echo "setenv HADOOP_CLIENT_OPTS \"-Djava.io.tmpdir=${HADOOP_LOCAL_SCRATCHSPACE_DIR} -XX:-UsePerfData\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT} 
+                    fi
+                else
+                    echo "export HADOOP_HOME=\"${HADOOP_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "export HADOOP_CONF_DIR=\"${HADOOP_CONF_DIR}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "export HADOOP_LOG_DIR=\"${HADOOP_LOG_DIR}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "export HADOOP_MASTER_NODE=\"${HADOOP_MASTER_NODE}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "export HADOOP_SLAVE_COUNT=\"${HADOOP_SLAVE_COUNT}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    echo "export HADOOP_SLAVE_CORE_COUNT=\"${HADOOP_SLAVE_CORE_COUNT}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    if Hamster_hadoop_filesystem_mode_is_hdfs_type
+                    then
+                        echo "export HADOOP_NAMENODE=\"${HADOOP_NAMENODE}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                        echo "export HADOOP_NAMENODE_PORT=\"${HADOOP_NAMENODE_PORT}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    fi
+                    echo "export HADOOP_VERSION=\"${HADOOP_VERSION}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
+                    then
+                        echo "export HADOOP_CLIENT_OPTS=\"-Djava.io.tmpdir=${HADOOP_LOCAL_SCRATCHSPACE_DIR} -XX:-UsePerfData\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+                    fi
+                fi
+                echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+            fi
+        fi
+
+        # Ensure namenode isn't in safe mode.
+        #
+        # We do not use "-safemode wait", b/c we want to inform the user
+        # as we're waiting.
+        if [ ${HADOOP_MODE} != "setuponly" ] \
+            && Hamster_hadoop_filesystem_mode_is_hdfs_type
+        then
+            if [ "${hdfs_was_setup}" == "1" ]
+            then
+                # Return 0 if service up, 1 if not
+                Hamster_check_service_up "Hadoop" "__Hamster_run_check_hadoop_up"
+
+                if [ $? -eq 0 ]
+                then
+                    hamster_run_hadoop_should_be_torndown=1
+                    hamster_run_hadoop_setup_successful=1
+                else
+                    hamster_run_hadoop_should_be_torndown=1
+                    hamster_run_hadoop_setup_successful=0
+                    hamster_run_prior_startup_successful=false
+                fi
+            else
+                hamster_run_hadoop_should_be_torndown=0
+                hamster_run_hadoop_setup_successful=0
+                hamster_run_prior_startup_successful=false
+            fi
+        else
+            hamster_run_hadoop_should_be_torndown=1
+            hamster_run_hadoop_setup_successful=1
+        fi
+
+        # Setup job history server after namenode comes up, it may need to
+        # write/create in HDFS
+        if [ ${HADOOP_MODE} != "setuponly" ] && [ "${hamster_run_hadoop_setup_successful}" == "1" ]
+        then
+            if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+            then
+                ${hadoopsetupscriptprefix}/start-jobhistoryserver.sh
+            fi
+            
+            if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+            then
+                ${hadoopsetupscriptprefix}/mr-jobhistory-daemon.sh start historyserver
+            fi
+        fi
+
+        # A number of applications assume the user home directory has been
+        # created.  If it hasn't yet, lets create it for the user.
+        if [ "${hamster_run_hadoop_setup_successful}" == "1" ] && [ ${HADOOP_MODE} != "setuponly" ]
+        then
+            if Hamster_hadoop_filesystem_mode_is_hdfs_type
+            then
+                ${hadoopcmdprefix}/hadoop fs -ls "/user/${USER}" >& /dev/null
+                if [ $? -ne 0 ]
+                then
+                    echo "User home directory /user/${USER} not found, creating it"
+                    ${hadoopcmdprefix}/hadoop fs -mkdir -p "/user/${USER}"
+                fi
+            fi
+        fi
+    else
+        hamster_run_hadoop_should_be_torndown=0
+        hamster_run_hadoop_setup_successful=1
+    fi
+}
+
+Hamster_run_hadoop () {
+    if [ "${HADOOP_MODE}" == "terasort" ]
+    then
+        echo "*******************************************************"
+        echo "* Running Terasort"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute script ${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-hadoop-terasort &
+        local scriptpid=$!
+        Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
+    elif [ "${HADOOP_MODE}" == "script" ]
+    then
+        echo "*******************************************************"
+        echo "* Executing script $HADOOP_SCRIPT_PATH $HADOOP_SCRIPT_ARGS"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute script ${HADOOP_SCRIPT_PATH} ${HADOOP_SCRIPT_ARGS} &
+        local scriptpid=$!
+        Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
+    elif [ "${HADOOP_MODE}" == "interactive" ]
+    then
+        echo "*******************************************************"
+        echo "* Entering Hadoop ${HADOOP_MODE} mode"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute interactive &
+        local scriptpid=$!
+        wait $scriptpid
+    elif [ "${HADOOP_MODE}" == "launch" ] || [ "${HADOOP_MODE}" == "hdfsonly" ]
+    then
+        echo "*******************************************************"
+        echo "* Entering Hadoop ${HADOOP_MODE} mode"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute launch &
+        local scriptpid=$!
+        wait $scriptpid
+    elif [ "${HADOOP_MODE}" == "setuponly" ]
+    then
+        echo "*******************************************************"
+        echo "* Entering Hadoop ${HADOOP_MODE} mode"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-sleep countdown &
+        local scriptpid=$!
+        wait ${scriptpid}
+    elif [ "${HADOOP_MODE}" == "upgradehdfs" ]
+    then
+        echo "*******************************************************"
+        echo "* Entering Hadoop ${HADOOP_MODE} mode"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute scriptnokill ${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-hadoop-upgradehdfs &
+        local scriptpid=$!
+        Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
+
+        if [ $? -eq 0 ]
+        then
+            # Sets hamster_hdfs_stored_version_path
+            Hamster_get_hdfs_stored_version_path
+
+            if [ "${hamster_hdfs_stored_version_path}X" != "X" ]
+            then
+                rm -f ${hamster_hdfs_stored_version_path}
+                echo "${HADOOP_VERSION}" > ${hamster_hdfs_stored_version_path}
+            fi
+        fi
+    elif [ "${HADOOP_MODE}" == "decommissionhdfsnodes" ]
+    then
+        echo "*******************************************************"
+        echo "* Entering Hadoop ${HADOOP_MODE} mode"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute scriptnokill ${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-hadoop-decommissionhdfsnodes &
+        local scriptpid=$!
+        Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
+
+        if [ $? -eq 0 ]
+        then
+            # Sets hamster_hdfs_stored_nodecount_path
+            Hamster_get_hdfs_stored_nodecount_path
+
+            rm -f ${hamster_hdfs_stored_nodecount_path}
+            echo "${HADOOP_DECOMMISSION_HDFS_NODE_SIZE}" > ${hamster_hdfs_stored_nodecount_path}
+        fi
+    else
+        Hamster_output_internal_error "HADOOP_MODE = ${HADOOP_MODE} not handled"
+    fi
+}
+ 
+Hamster_run_stop_hadoop () {
+    if [ "${HADOOP_SETUP}" == "yes" ] && [ "${hamster_run_hadoop_should_be_torndown}" == "1" ]
+    then
+        if [ ${HADOOP_MODE} != "setuponly" ]
+        then
+            cd ${HADOOP_HOME}
+            
+            echo "Stopping hadoop"
+            
+            # Make variables unspecified for shutdown
+            Hamster_make_all_local_dirs_unspecified
+
+            if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+            then
+                ${hadoopsetupscriptprefix}/stop-mapred.sh
+                ${hadoopsetupscriptprefix}/stop-jobhistoryserver.sh
+            fi
+            
+            if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+            then
+                ${hadoopsetupscriptprefix}/stop-yarn.sh
+                ${hadoopsetupscriptprefix}/mr-jobhistory-daemon.sh stop historyserver
+            fi
+
+            # Make variables specific now within Hamster
+            Hamster_make_all_local_dirs_node_specific
+
+            if Hamster_hadoop_filesystem_mode_is_hdfs_type
+            then
+                if [ "${hamster_run_hadoop_setup_successful}" == "1" ]
+                then
+                    echo "Saving namespace before shutting down hdfs ..."
+
+                    if Hamster_hdfs_federation_enabled
+                    then
+                        for i in `seq 1 ${HDFS_FEDERATION_NAMENODE_COUNT}`
+                        do
+                            # First namenode is based on master
+                            if [ "${i}" == "1" ]
+                            then
+                                federationnamenodehost="${HADOOP_MASTER_NODE}"
+                            else
+                                numline=`expr ${i} - 1`
+                                federationnamenodehost=`sed -n "${numline}p" ${HADOOP_CONF_DIR}/namenode_hdfs_federation`
+                            fi
+                            
+                            command="${hadoopcmdprefix}/${dfsadminscript} dfsadmin -fs hdfs://${federationnamenodehost}:${default_hadoop_hdfs_namenode_address} -safemode enter"
+                            echo "Running $command" >&2
+                            $command
+                            
+                            command="${hadoopcmdprefix}/${dfsadminscript} dfsadmin -fs hdfs://${federationnamenodehost}:${default_hadoop_hdfs_namenode_address} -saveNamespace"
+                            echo "Running $command" >&2
+                            $command
+                            
+                            command="${hadoopcmdprefix}/${dfsadminscript} dfsadmin -fs hdfs://${federationnamenodehost}:${default_hadoop_hdfs_namenode_address} -safemode leave"
+                            echo "Running $command" >&2
+                            $command
+                        done
+                    else
+                        command="${hadoopcmdprefix}/${dfsadminscript} dfsadmin -safemode enter"
+                        echo "Running $command" >&2
+                        $command
+                        
+                        command="${hadoopcmdprefix}/${dfsadminscript} dfsadmin -saveNamespace"
+                        echo "Running $command" >&2
+                        $command
+                        
+                        command="${hadoopcmdprefix}/${dfsadminscript} dfsadmin -safemode leave"
+                        echo "Running $command" >&2
+                        $command
+                    fi
+                fi
+
+                # Make variables unspecified for shutdown
+                Hamster_make_all_local_dirs_unspecified
+
+                ${hadoopsetupscriptprefix}/stop-dfs.sh 
+
+                # Make variables specific now within Hamster
+                Hamster_make_all_local_dirs_node_specific
+            fi
+        fi
+    fi
+    hamster_run_hadoop_teardown_complete=1
+}

@@ -1,0 +1,28 @@
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-check-inputs
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-setup-core
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-setup-projects
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-setup-post
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-pre-run
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-run
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-cleanup
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-post-run

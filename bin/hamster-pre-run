@@ -1,0 +1,35 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script executes scripts on behalf of the user.  For the most
+# part, it shouldn't be edited.  See job submission files for
+# configuration details.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+
+Hamster_make_all_local_dirs_node_specific
+
+if [ "${HAMSTER_PRE_JOB_RUN}X" != "X" ]
+then
+    ${HAMSTER_PRE_JOB_RUN}
+    exit $?
+fi
+
+exit 0

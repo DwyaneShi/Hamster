@@ -1,0 +1,147 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# Export directories promised by user documentation.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+# Do not ever "use" the LOCAL_JOB_DIR variables.  They should only be
+# referenced when setting SCRATCHSPACE_DIR or CONF_DIR or LOG_DIR variables.
+
+__Hamster_make_hamster_local_dirs () {
+    local which=$1
+
+    if [ "${HAMSTER_LOCAL_JOB_DIR}X" == "X" ]
+    then
+        Hamster_output_internal_error "__Hamster_make_hamster_local_dirs called without HAMSTER_LOCAL_JOB_DIR set"
+        exit 1
+    fi
+
+    export HAMSTER_LOCAL_CONF_DIR=${HAMSTER_LOCAL_JOB_DIR}/conf
+    export HAMSTER_LOCAL_SCRATCHSPACE_DIR=${HAMSTER_LOCAL_JOB_DIR}/scratch
+
+    if [ "${which}" == "specific" ]
+    then
+        myhostname=`hostname`
+        export HAMSTER_LOCAL_CONF_DIR=`echo $HAMSTER_LOCAL_CONF_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+        export HAMSTER_LOCAL_SCRATCHSPACE_DIR=`echo $HAMSTER_LOCAL_SCRATCHSPACE_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+    fi
+    Hamster_print HAMSTER_LOCAL_CONF_DIR
+    Hamster_print HAMSTER_LOCAL_SCRATCHSPACE_DIR
+}
+
+Hamster_make_hamster_local_dirs_unspecified () {
+    __Hamster_make_hamster_local_dirs "generic"
+}
+
+Hamster_make_hamster_local_dirs_node_specific () {
+    __Hamster_make_hamster_local_dirs "specific"
+}
+
+__Hamster_make_hadoop_local_dirs () {
+    local which=$1
+
+    if [ "${HADOOP_SETUP}" == "yes" ]
+    then
+        if [ "${HADOOP_LOCAL_JOB_DIR}X" == "X" ]
+        then
+            Hamster_output_internal_error "__Hamster_make_hadoop_local_dirs called without HADOOP_LOCAL_JOB_DIR set"
+            exit 1
+        fi
+
+        export HADOOP_CONF_DIR=${HADOOP_LOCAL_JOB_DIR}/conf
+        export HADOOP_LOG_DIR=${HADOOP_LOCAL_JOB_DIR}/log
+        export HADOOP_LOCAL_SCRATCHSPACE_DIR=${HADOOP_LOCAL_JOB_DIR}/scratch
+        export HADOOP_PID_DIR=${HADOOP_LOCAL_JOB_DIR}/pid
+
+        if [ "${which}" == "specific" ]
+        then
+            myhostname=`hostname`
+            export HADOOP_CONF_DIR=`echo $HADOOP_CONF_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+            export HADOOP_LOG_DIR=`echo $HADOOP_LOG_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+            export HADOOP_LOCAL_SCRATCHSPACE_DIR=`echo $HADOOP_LOCAL_SCRATCHSPACE_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+            export HADOOP_PID_DIR=`echo $HADOOP_PID_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+        fi
+
+        export YARN_CONF_DIR=${HADOOP_CONF_DIR}
+        export YARN_LOG_DIR=${HADOOP_LOG_DIR}
+        export YARN_LOCAL_SCRATCHSPACE_DIR=${HADOOP_LOCAL_SCRATCHSPACE_DIR}
+        export YARN_PID_DIR=${HADOOP_PID_DIR}
+
+        # Hadoop has this completely random other one
+        export HADOOP_MAPRED_PID_DIR=${HADOOP_PID_DIR}
+
+        Hamster_print HADOOP_CONF_DIR
+        Hamster_print HADOOP_LOG_DIR
+        Hamster_print HADOOP_LOCAL_SCRATCHSPACE_DIR
+        Hamster_print HADOOP_PID_DIR
+        Hamster_print YARN_CONF_DIR
+        Hamster_print YARN_LOG_DIR
+        Hamster_print YARN_LOCAL_SCRATCHSPACE_DIR
+        Hamster_print YARN_PID_DIR
+        Hamster_print HADOOP_MAPRED_PID_DIR
+    fi
+}
+
+Hamster_make_hadoop_local_dirs_unspecified () {
+    __Hamster_make_hadoop_local_dirs "generic"
+}
+
+Hamster_make_hadoop_local_dirs_node_specific () {
+    __Hamster_make_hadoop_local_dirs "specific"
+}
+
+__Hamster_make_all_local_dirs () {
+    __Hamster_make_hamster_local_dirs $1
+    __Hamster_make_hadoop_local_dirs $1
+}
+
+Hamster_make_all_local_dirs_unspecified () {
+    __Hamster_make_all_local_dirs "generic"
+}
+
+Hamster_make_all_local_dirs_node_specific () {
+    __Hamster_make_all_local_dirs "specific"
+}
+
+if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
+then
+    export HAMSTER_LOCAL_JOB_DIR=${HAMSTER_LOCAL_DIR}/HAMSTERHOSTNAMESUBSTITUTION/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
+else
+    export HAMSTER_LOCAL_JOB_DIR=${HAMSTER_LOCAL_DIR}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
+fi
+Hamster_print HAMSTER_LOCAL_JOB_DIR
+
+# HAMSTER_LOCAL_SCRATCHSPACE_DIR & HAMSTER_LOCAL_CONF_DIR set
+Hamster_make_hamster_local_dirs_node_specific
+
+if [ "${HADOOP_SETUP}" == "yes" ]
+then
+    if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
+    then
+        export HADOOP_LOCAL_JOB_DIR=${HADOOP_LOCAL_DIR}/HAMSTERHOSTNAMESUBSTITUTION/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
+    else
+        export HADOOP_LOCAL_JOB_DIR=${HADOOP_LOCAL_DIR}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
+    fi
+    # HADOOP_LOCAL_SCRATCHSPACE_DIR & HADOOP_CONF_DIR & HADOOP_LOG_DIR set
+    # YARN_LOCAL_SCRATCHSPACE_DIR & YARN_CONF_DIR & YARN_LOG_DIR set
+    Hamster_make_hadoop_local_dirs_node_specific
+    Hamster_print HADOOP_LOCAL_JOB_DIR
+fi

@@ -1,0 +1,135 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script is the core processing script for setting up daemons and
+# running jobs.  For the most part, it shouldn't be edited.  See
+# job submission files for configuration details.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-run
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-project-hadoop
+
+if ! Hamster_am_I_master
+then
+    exit 0
+fi
+
+# Initially make variables specific to node
+Hamster_make_all_local_dirs_node_specific
+
+# Output some general info
+echo "*******************************************************"
+echo "* Hamster General Job Info"
+echo "*"
+echo "* Job Nodelist: ${HAMSTER_NODELIST}"
+echo "* Job Nodecount: ${HAMSTER_NODE_COUNT}"
+echo "* Job Timelimit in Minutes: ${HAMSTER_TIMELIMIT_MINUTES}"
+echo "* Job Name: ${HAMSTER_JOB_NAME}"
+echo "* Job ID: ${HAMSTER_JOB_ID}"
+echo "*"
+echo "*******************************************************"
+
+if [ "${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT_SHELL}X" != "X" ]
+then
+    HAMSTER_SHELL="${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT_SHELL}"
+else
+    HAMSTER_SHELL="${SHELL}"
+fi
+
+if [ "${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}X" != "X" ]
+then
+    if [ -f "${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}" ]
+    then
+        rm -f ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    fi
+    
+    touch ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    chmod 700 ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    Hamster_print HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT
+
+    echo "#!${HAMSTER_SHELL}" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    Hamster_print HAMSTER_SHELL
+
+    echo "# Common environment variables for Job = ${HAMSTER_JOB_NAME}, Job ID = ${HAMSTER_JOB_ID}" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+
+    echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    if [ "${JAVA_HOME}X" != "X" ]
+    then
+        if echo $HAMSTER_SHELL | grep -q csh
+        then
+            echo "setenv JAVA_HOME \"${JAVA_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+        else
+            echo "export JAVA_HOME=\"${JAVA_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+        fi
+        echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    fi
+fi
+
+# Global flag for setup check, will be set to false if any startup fails
+hamster_run_prior_startup_successful=true
+
+# Global, will be set/adjusted by various start functions
+hamster_run_total_sleep_wait=0
+
+# Will set hamster_run_hadoop_should_be_torndown & hamster_run_hadoop_setup_successful appropriately
+Hamster_run_start_hadoop
+
+
+# Make sure all setup passed
+if [ "${hamster_run_hadoop_setup_successful}" == "1" ]
+then
+    if [ "${HAMSTER_JOB_TYPE}" == "script" ]
+    then
+        echo "*******************************************************"
+        echo "* Executing script $HAMSTER_SCRIPT_PATH $HAMSTER_SCRIPT_ARGS"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute script ${HAMSTER_SCRIPT_PATH} ${HAMSTER_SCRIPT_ARGS} &
+        scriptpid=$!
+        Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
+    elif [ "${HAMSTER_JOB_TYPE}" == "interactive" ]
+    then
+        echo "*******************************************************"
+        echo "* Entering Hamster ${HAMSTER_JOB_TYPE} mode"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute interactive &
+        scriptpid=$!
+        wait $scriptpid
+    elif [ "${HAMSTER_JOB_TYPE}" == "hadoop" ]
+    then
+        Hamster_run_hadoop
+    elif [ "${HAMSTER_JOB_TYPE}" == "testall" ]
+    then
+        echo "*******************************************************"
+        echo "* Running Hamster TestAll"
+        echo "*******************************************************"
+        ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute script ${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-hamster-testall &
+        scriptpid=$!
+        Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
+    fi
+fi
+
+# Sets hamster_run_hadoop_teardown_complete if teardown done
+Hamster_run_stop_hadoop
+
+exit 0

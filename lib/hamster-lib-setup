@@ -1,0 +1,321 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This file has common node setup functions. Should be sourced and
+# used only by hamster-setup files, after hamster-setup-core has
+# completed.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-calculate-values
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+# deal with viewfs & federation
+Hamster_calculate_hadoop_filesystem_paths () {
+    local noderank=$1
+    if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ]
+    then
+        hamster_hadooptmpdir=`echo ${HADOOP_HDFS_PATH} | awk -F, '{print $1}'`
+        if Hamster_hdfs_federation_enabled
+        then
+            hamster_fsdefault="viewfs:///"
+        else
+            hamster_fsdefault="hdfs://${HADOOP_MASTER_NODE}:${default_hadoop_hdfs_namenode_address}"
+        fi
+    elif [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsoverlustre" ]
+    then
+        if [ "${HADOOP_PER_JOB_HDFS_PATH}" == "yes" ]
+        then
+            hamster_hadooptmpdir="${HADOOP_HDFSOVERLUSTRE_PATH}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}/node-${noderank}"
+        else
+            hamster_hadooptmpdir="${HADOOP_HDFSOVERLUSTRE_PATH}/node-${noderank}"
+        fi
+        if Hamster_hdfs_federation_enabled
+        then
+            hamster_fsdefault="viewfs:///"
+        else
+            hamster_fsdefault="hdfs://${HADOOP_MASTER_NODE}:${default_hadoop_hdfs_namenode_address}"
+        fi
+    elif [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsovernetworkfs" ]
+    then
+        if [ "${HADOOP_PER_JOB_HDFS_PATH}" == "yes" ]
+        then
+            hamster_hadooptmpdir="${HADOOP_HDFSOVERNETWORKFS_PATH}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}/node-${noderank}"
+        else
+            hamster_hadooptmpdir="${HADOOP_HDFSOVERNETWORKFS_PATH}/node-${noderank}"
+        fi
+        
+        if Hamster_hdfs_federation_enabled
+        then
+            hamster_fsdefault="viewfs:///"
+        else
+            hamster_fsdefault="hdfs://${HADOOP_MASTER_NODE}:${default_hadoop_hdfs_namenode_address}"
+        fi
+    elif [ "${HADOOP_FILESYSTEM_MODE}" == "rawnetworkfs" ]
+    then
+        if [ "${HADOOP_PER_JOB_HDFS_PATH}" == "yes" ]
+        then
+            hamster_hadooptmpdir="${HADOOP_RAWNETWORKFS_PATH}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}/node-${noderank}"
+        else
+            hamster_hadooptmpdir="${HADOOP_RAWNETWORKFS_PATH}/node-${noderank}"
+        fi
+        hamster_fsdefault="file:///"
+    elif [ "${HADOOP_FILESYSTEM_MODE}" == "intellustre" ]
+    then
+        if [ "${HADOOP_PER_JOB_HDFS_PATH}" == "yes" ]
+        then
+            hamster_hadooptmpdir="${HADOOP_INTELLUSTRE_PATH}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}/tmp"
+        else
+            hamster_hadooptmpdir="${HADOOP_INTELLUSTRE_PATH}/tmp"
+        fi
+        hamster_fsdefault="lustre:///"
+    else
+        Hamster_output_internal_error "Illegal HADOOP_FILESYSTEM_MODE \"${HADOOP_FILESYSTEM_MODE}\" specified"
+        exit 1
+    fi
+    Hamster_print hamster_hadooptmpdir
+    Hamster_print hamster_fsdefault
+}
+
+Hamster_calculate_hdfs_format_file_path () {
+    local noderank=$1
+    Hamster_calculate_hadoop_filesystem_paths ${noderank}
+    hamster_hdfs_format_file="${hamster_hadooptmpdir}/hamster.hdfs_formatted"
+    Hamster_print hamster_hdfs_format_file
+}
+
+Hamster_calculate_stop_timeouts () {
+    local shutdowntimeseconds=`expr ${hamster_shutdown_time_value} \* 60`
+
+    if [ "${HAMSTER_POST_JOB_RUN}X" != "X" ]
+    then
+        # Minimum 5 minutes or 1/3rd of time for HAMSTER_POST_JOB_RUN
+        local hamsterpostrunallocate=`expr ${shutdowntimeseconds} \/ 3`
+        if [ "${hamsterpostrunallocate}" -lt 300 ]
+        then
+            hamsterpostrunallocate=300
+        fi
+
+        shutdowntimeseconds=`expr ${shutdowntimeseconds} - ${hamsterpostrunallocate}` 
+    fi
+
+    local stoptimeoutdivisor=1
+
+    if [ "${HADOOP_SETUP}" == "yes" ]
+    then
+        if [ ${HADOOP_SETUP_TYPE}  == "MR1" ] \
+            || [ ${HADOOP_SETUP_TYPE}  == "MR2" ]
+        then
+            # Need to split timeout time between namenode, datanodes,
+            # secondary namenode, jobtracker/resource manager,
+            # tasktracker/nodemanagers, jobhistory server, & saveNameSpace
+            # time
+            stoptimeoutdivisor=`expr ${stoptimeoutdivisor} + 7`
+        else
+            if Hamster_hadoop_filesystem_mode_is_hdfs_type
+            then
+                # Need to split timeout time between namenode, datanodes,
+                # secondary namenode, & saveNameSpace time
+                stoptimeoutdivisor=`expr ${stoptimeoutdivisor} + 4`
+            fi
+        fi    
+    
+        # + 2 for scratch extra time in scripts and what not
+        stoptimeoutdivisor=`expr ${stoptimeoutdivisor} + 2`
+    fi
+
+    local stoptimeout=`expr ${shutdowntimeseconds} \/ ${stoptimeoutdivisor}`
+        
+    if [ "${stoptimeout}" -lt 5 ]
+    then
+        stoptimeout=5
+    fi
+
+    hamster_hadoop_stop_timeout=${stoptimeout}
+}
+
+# Count how many big data systems we're using that can run jobs
+__Hamster_calculate_canrunjobscount () {
+    __canrunjobscount=0
+
+    if [ "${HADOOP_SETUP}" == "yes" ] && ( [ "${HADOOP_SETUP_TYPE}" == "MR1" ] || [ "${HADOOP_SETUP_TYPE}" == "MR2" ] )
+    then
+        __canrunjobscount=`expr ${__canrunjobscount} + 1`
+    fi
+
+    # Could be zero in weird test scenarios
+    if [ "${__canrunjobscount}" == "0" ]
+    then
+        __canrunjobscount=1
+    fi
+}
+
+Hamster_calculate_processor_count () {
+    if [ "${HAMSTER_SUBMISSION_TYPE}" == "sbatchsrun" ] \
+        && [ -n "${SLURM_CPUS_ON_NODE}" ]
+    then
+        hamster_processor_count=${SLURM_CPUS_ON_NODE}
+    else
+        hamster_processor_count=`cat /proc/cpuinfo | grep processor | wc -l`
+    fi
+    Hamster_print hamster_processor_count
+}
+
+Hamster_calculate_threads_to_use () {
+    # Sets hamster_processor_count
+    Hamster_calculate_processor_count
+
+    # Sets __canrunjobscount
+    __Hamster_calculate_canrunjobscount
+ 
+    # If only one system to run jobs, estimate 1.5X cores
+    # If > 1, split cores evenly amongst job running stuff
+
+    if [ "${__canrunjobscount}" == "1" ]
+    then
+        hamster_threads_to_use=`expr ${hamster_processor_count} + ${hamster_processor_count} \/ 2`
+    else
+        hamster_threads_to_use=`expr ${hamster_processor_count} \/ ${__canrunjobscount}`
+
+        if [ "${hamster_threads_to_use}" == "0" ]
+        then
+            hamster_threads_to_use="1"
+        fi
+    fi
+    Hamster_print hamster_threads_to_use
+}
+
+Hamster_calculate_memory_to_use () {
+    local memtotal=`cat /proc/meminfo | grep MemTotal | awk '{print $2}'`
+    local memtotalgig=`echo "(${memtotal} / 1048576)" | bc -l | xargs printf "%1.0f"`
+    
+    # Sets canrunjobscount
+    __Hamster_calculate_canrunjobscount
+
+    # We start w/ 80% of system memory 
+    hamster_memory_to_use=`echo "${memtotalgig} * .8" | bc -l | xargs printf "%1.0f"`
+    hamster_memory_to_use=`expr $hamster_memory_to_use \/ ${__canrunjobscount}`
+
+    hamster_memory_to_use=`echo "${hamster_memory_to_use} * 1024" | bc -l | xargs printf "%1.0f"`
+    Hamster_print hamster_memory_to_use
+}
+
+Hamster_find_conffile () {
+    local hamsterconffiledir=${HAMSTER_SCRIPTS_HOME}/conf
+    local project=$1
+    local conffiledir=$2
+    local conffiledesired=$3
+    local __returnvar=$4
+    local conffilefound=""
+
+    Hamster_print conffiledir
+    Hamster_print conffiledesired
+    if [ "${conffiledir}X" != "X" ]
+    then
+        if [ -f "${conffiledir}/${conffiledesired}" ]
+        then
+            conffilefound="${conffiledir}/${conffiledesired}"
+        fi
+    fi
+
+    if [ "${conffilefound}X" == "X" ]
+    then
+        conffilefound="${hamsterconffiledir}/${conffiledesired}"
+    fi
+    Hamster_print conffilefound
+
+    if [ ! -f ${conffilefound} ]
+    then
+        Hamster_output_internal_error "Missing ${project} configuration file ${conffiledesired}"
+        exit 1
+    fi
+
+    eval $__returnvar="${conffilefound}"
+}
+
+Hamster_calculate_openfiles () {
+    local slavecount=$1
+
+    local openfiles=`ulimit -n`
+    if [ "${openfiles}" != "unlimited" ]
+    then
+        local openfileshardlimit=`ulimit -H -n`
+
+        # we estimate 4096 per 100 nodes, minimum 8192, max 65536.
+        # Obviously depends on many factors such as core count, but it's a
+        # reasonble and safe over-estimate calculated based on experience.
+        local openfilesslavecount=`expr ${slavecount} \/ 100`
+        hamster_openfilescount=`expr ${openfilesslavecount} \* 4096`
+        if [ "${hamster_openfilescount}" -lt "8192" ]
+        then
+            hamster_openfilescount=8192
+        fi
+        if [ "${hamster_openfilescount}" -gt "65536" ]
+        then
+            hamster_openfilescount=65536
+        fi
+        
+        if [ "${openfileshardlimit}" != "unlimited" ]
+        then
+            if [ ${hamster_openfilescount} -gt ${openfileshardlimit} ]
+            then
+                hamster_openfilescount=${openfileshardlimit}
+            fi
+        fi
+    else
+        hamster_openfilescount="unlimited"
+    fi
+    Hamster_print hamster_openfilescount
+}
+
+Hamster_calculate_userprocesses () {
+    local slavecount=$1
+
+    local userprocesses=`ulimit -u`
+    if [ "${userprocesses}" != "unlimited" ]
+    then
+        local userprocesseshardlimit=`ulimit -H -u`
+
+        # we estimate 2048 per 100 nodes, minimum 4096, max 32768.
+        local userprocessesslavecount=`expr ${slavecount} \/ 100`
+        hamster_userprocessescount=`expr ${userprocessesslavecount} \* 2048`
+        if [ "${hamster_userprocessescount}" -lt "4096" ]
+        then
+            hamster_userprocessescount=4096
+        fi
+        if [ "${hamster_userprocessescount}" -gt "32768" ]
+        then
+            hamster_userprocessescount=32768
+        fi
+        
+        if [ "${userprocesseshardlimit}" != "unlimited" ]
+        then
+            if [ ${hamster_userprocessescount} -gt ${userprocesseshardlimit} ]
+            then
+                hamster_userprocessescount=${userprocesseshardlimit}
+            fi
+        fi
+    else
+        hamster_userprocessescount="unlimited"
+    fi
+    Hamster_print hamster_userprocessescount
+}

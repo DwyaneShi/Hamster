@@ -1,0 +1,66 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# Export common hamster exports promised by user documentation.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+__Hamster_calc_slurm_hamster_timelimit () {
+    # Do not excessively call this
+    if [ "${HAMSTER_TIMELIMIT_MINUTES}X" == "X" ]
+    then
+        local timelimitwalltime=`squeue -j ${SLURM_JOB_ID} -h -o %l`
+        Hamster_walltime_to_minutes ${timelimitwalltime}
+        export HAMSTER_TIMELIMIT_MINUTES=${hamster_walltimetominutes}
+    fi
+}
+
+__Hamster_handle_job_name_corner_cases () {
+    # Handle special corner cases where user's job name may not
+    # play nice, as we use it in file paths and what not
+    if [[ $HAMSTER_JOB_NAME =~ "\$" ]]; then
+        echo "Job name contains dollar sign, internally replacing with underscore" 
+        export HAMSTER_JOB_NAME=${HAMSTER_JOB_NAME//\$/_}
+    fi
+    if [[ $HAMSTER_JOB_NAME =~ [[:space:]] ]]; then
+        echo "Job name contains whitespace, internally replacing with underscore" 
+        export HAMSTER_JOB_NAME=${HAMSTER_JOB_NAME//[[:space:]]/_}
+    fi
+}
+
+if [ "${HAMSTER_SUBMISSION_TYPE}" == "sbatchsrun" ]
+then
+    export HAMSTER_CLUSTER_NODERANK="${SLURM_NODEID:=0}"
+    export HAMSTER_NODE_COUNT="${SLURM_NNODES}"
+    export HAMSTER_NODELIST="${SLURM_JOB_NODELIST}"
+    export HAMSTER_JOB_NAME="${SLURM_JOB_NAME}"
+    export HAMSTER_JOB_ID="${SLURM_JOB_ID}"
+    # Legacy: Use if user set SBATCH_TIMELIMIT
+    if [ "${SBATCH_TIMELIMIT}X" != "X" ]
+    then
+        export HAMSTER_TIMELIMIT_MINUTES="${SBATCH_TIMELIMIT}"
+    else
+        __Hamster_calc_slurm_hamster_timelimit
+    fi
+    Hamster_print HAMSTER_TIMELIMIT_MINUTES
+    __Hamster_handle_job_name_corner_cases
+else
+    Hamster_output_internal_error "Invalid HAMSTER_SUBMISSION_TYPE = ${HAMSTER_SUBMISSION_TYPE}"
+fi
