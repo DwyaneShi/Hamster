@@ -93,8 +93,8 @@ export HAMSTER_JOB_TYPE="script"
 # A number of convenient scripts are available in the
 # ${HAMSTER_SCRIPTS_HOME}/scripts directory.
 #
-# export HAMSTER_PRE_JOB_RUN="${HAMSTER_SCRIPTS_HOME}/scripts/pre-job-run-scripts/my-pre-job-script"
-# export HAMSTER_POST_JOB_RUN="${HAMSTER_SCRIPTS_HOME}/scripts/post-job-run-scripts/my-post-job-script"
+# export HAMSTER_PRE_JOB_RUN="${HAMSTER_SCRIPTS_HOME}/scripts/job/pre-job-run-scripts/my-pre-job-script"
+# export HAMSTER_POST_JOB_RUN="${HAMSTER_SCRIPTS_HOME}/scripts/job/post-job-run-scripts/my-post-job-script"
 
 # Environment Variable Script
 #

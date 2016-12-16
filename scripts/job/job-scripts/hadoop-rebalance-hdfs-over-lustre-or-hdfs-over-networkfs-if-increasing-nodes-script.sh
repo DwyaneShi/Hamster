@@ -15,13 +15,18 @@
 # really can't be used.  HDFS over Lustre does not have real local
 # disks, therefore the "local" disk utilization and global "free
 # space" numbers don't make much sense in HDFS over Lustre.
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
  
 FILES=`${HADOOP_HOME}/bin/hadoop fs -ls 2> /dev/null | grep -v Found | awk '{print $8}'`
 
-if [ "${HADOOP_SETUP_TYPE}" == "MR1" ] || [ "${HADOOP_SETUP_TYPE}" == "HDFS1" ]
+local version=$(Hamster_hadoop_version)
+if [ $version == "1" ]
 then
     rmoption="-rmr"
-elif [ "${HADOOP_SETUP_TYPE}" == "MR2" ] || [ "${HADOOP_SETUP_TYPE}" == "HDFS2" ]
+elif [ $version == "2" ]
+then
+    rmoption="-rm -r"
+elif [ $version == "3" ]
 then
     rmoption="-rm -r"
 fi

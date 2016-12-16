@@ -10,11 +10,11 @@ INSTALL_PATH="$HOME/workspace/bigdata/"
 # Configurations needed to rebuild all launching scripts to be pre-populated 
 # with INSTALL_PATH and several other paths & settings appropriately.  
 
-JAVA_HOME="/usr/java/jdk1.7.0"
+JAVA_HOME="/opt/java/1.8.0_25"
 HOME_DIR_PATH="$HOME"
 LUSTRE_DIR_PATH="/lustre/$USER"
 NETWORKFS_DIR_PATH="/scratch/$USER"
-RAWNETWORKFS_DIR_PATH=/lustre/${USER}
+RAWNETWORKFS_DIR_PATH="/lustre/${USER}"
 LOCAL_DIR_PATH="/tmp/bigdata/"
 LOCAL_DRIVE_PATH="/tmp/bigdata/"
 
@@ -37,7 +37,8 @@ then
     exit 1
 fi
 
-HAMSTER_SCRIPTS_HOME=$(cd "`dirname "$0"`"/..; pwd)
+HAMSTER_SCRIPTS_HOME=$(cd "`dirname "$0"`"; pwd)
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 if [ ! -d "${HAMSTER_SCRIPTS_HOME}/patches" ]
 then
@@ -45,9 +46,9 @@ then
     exit 1
 fi
 
-if [ ! -d "${HAMSTER_SCRIPTS_HOME}/submission-scripts/script-templates" ]
+if [ ! -d "${HAMSTER_SCRIPTS_HOME}/scripts/submission/templates" ]
 then
-    echo "${HAMSTER_SCRIPTS_HOME}/submission-scripts/script-templates not a directory"
+    echo "${HAMSTER_SCRIPTS_HOME}/scripts/submission/templates not a directory"
     exit 1
 fi
 
@@ -99,57 +100,57 @@ __apply_patches_if_exist ${HADOOP_PACKAGE_BASEDIR} \
     ${HAMSTER_SCRIPTS_HOME}/patches/${HADOOP_PACKAGE_BASEDIR}.patch
 
 HAMSTER_SCRIPTS_HOME_DIRNAME=`dirname ${HAMSTER_SCRIPTS_HOME}`
-mkdir -p ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}
-cp ${HAMSTER_SCRIPTS_HOME}/submission-scripts/script-templates/Makefile ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/
+Hamster_mkdir ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}
+cp ${HAMSTER_SCRIPTS_HOME}/scripts/submission/templates/Makefile ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/
 hamsterscriptshomedirnamesubst=`echo ${HAMSTER_SCRIPTS_HOME_DIRNAME} | sed "s/\\//\\\\\\\\\//g"`
-sed -i -e "s/HAMSTER_SCRIPTS_DIR_PREFIX=\(.*\)/HAMSTER_SCRIPTS_DIR_PREFIX=${hamsterscriptshomedirnamesubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/HAMSTER_SCRIPTS_DIR_PREFIX=\(.*\)/HAMSTER_SCRIPTS_DIR_PREFIX=${hamsterscriptshomedirnamesubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 
 installpathsubst=`echo ${INSTALL_PATH} | sed "s/\\//\\\\\\\\\//g"`
-sed -i -e "s/HADOOP_DIR_PREFIX=\(.*\)/HADOOP_DIR_PREFIX=${installpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
-sed -i -e "s/HADOOP_VERSION=\(.*\)/HADOOP_VERSION=${HADOOP_VERSION}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/HADOOP_DIR_PREFIX=\(.*\)/HADOOP_DIR_PREFIX=${installpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/HADOOP_VERSION=\(.*\)/HADOOP_VERSION=${HADOOP_VERSION}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 
 if [ "${JAVA_HOME}X" != "X" ]
 then
     javadefaultpathsubst=`echo ${JAVA_HOME} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/JAVA_HOME=\(.*\)/JAVA_HOME=${javadefaultpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/JAVA_HOME=\(.*\)/JAVA_HOME=${javadefaultpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi
 
 if [ "${HOME_DIR_PATH}X" != "X" ]
 then
     homedirpathsubst=`echo ${HOME_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/HOME_DIR_PREFIX=\(.*\)/HOME_DIR_PREFIX=${homedirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/HOME_DIR_PREFIX=\(.*\)/HOME_DIR_PREFIX=${homedirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
 
 if [ "${LUSTRE_DIR_PATH}X" != "X" ]
 then
     lustredirpathsubst=`echo ${LUSTRE_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/LUSTRE_DIR_PREFIX=\(.*\)/LUSTRE_DIR_PREFIX=${lustredirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/LUSTRE_DIR_PREFIX=\(.*\)/LUSTRE_DIR_PREFIX=${lustredirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
 
 if [ "${RAWNETWORKFS_DIR_PATH}X" != "X" ]
 then
     rawnetworkfsdirpathsubst=`echo ${RAWNETWORKFS_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/RAWNETWORKFS_DIR_PREFIX=\(.*\)/RAWNETWORKFS_DIR_PREFIX=${rawnetworkfsdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/RAWNETWORKFS_DIR_PREFIX=\(.*\)/RAWNETWORKFS_DIR_PREFIX=${rawnetworkfsdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
 
 if [ "${NETWORKFS_DIR_PATH}X" != "X" ]
 then
     networkfsdirpathsubst=`echo ${NETWORKFS_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/NETWORKFS_DIR_PREFIX=\(.*\)/NETWORKFS_DIR_PREFIX=${networkfsdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/NETWORKFS_DIR_PREFIX=\(.*\)/NETWORKFS_DIR_PREFIX=${networkfsdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
 
 if [ "${LOCAL_DIR_PATH}X" != "X" ]
 then
     localdirpathsubst=`echo ${LOCAL_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/LOCAL_DIR_PREFIX=\(.*\)/LOCAL_DIR_PREFIX=${localdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/LOCAL_DIR_PREFIX=\(.*\)/LOCAL_DIR_PREFIX=${localdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
 
 
 if [ "${LOCAL_DRIVE_PATH}X" != "X" ]
 then
     localdrivepathsubst=`echo ${LOCAL_DRIVE_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/LOCAL_DRIVE_PREFIX=\(.*\)/LOCAL_DRIVE_PREFIX=${localdrivepathsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+    sed -i -e "s/LOCAL_DRIVE_PREFIX=\(.*\)/LOCAL_DRIVE_PREFIX=${localdrivepathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
 
 hostnamesuffixsubst=`echo ${HOSTNAME_SUFFIX} | sed "s/\\//\\\\\\\\\//g"`
-sed -i -e "s/HOSTNAME_SUFFIX=\(.*\)/HOSTNAME_SUFFIX=${hostnamesuffixsubst}/" ${HAMSTER_SCRIPTS_HOME}/submission-scripts/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/HOSTNAME_SUFFIX=\(.*\)/HOSTNAME_SUFFIX=${hostnamesuffixsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile

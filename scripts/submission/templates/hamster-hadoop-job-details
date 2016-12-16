@@ -58,7 +58,7 @@
 # system.
 #
 # HADOOP_CHILD_MAP_HEAPSIZE and HADOOP_CHILD_REDUCE_HEAPSIZE are for
-# Yarn (i.e. HADOOP_SETUP_TYPE = MR2)
+# Yarn (i.e. HADOOP_SETUP_TYPE = MR)
 #
 # If HADOOP_CHILD_MAP_HEAPSIZE is not specified, it is assumed to be
 # HADOOP_CHILD_HEAPSIZE.

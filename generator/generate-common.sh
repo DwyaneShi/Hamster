@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source test-config.sh
+source config.sh
 source ../lib/hamster-lib-helper
 
 GetMinutesJob () {

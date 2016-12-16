@@ -1,13 +1,18 @@
 #!/bin/sh
 
 # This script is useful for fixing HDFS corruption
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
 
 cd ${HADOOP_HOME}
 
-if [ "${HADOOP_SETUP_TYPE}" == "MR1" ] || [ "${HADOOP_SETUP_TYPE}" == "HDFS1" ]
+local version=$(Hamster_hadoop_version)
+if [ $version == "1" ]
 then
     fsckscript="hadoop"
-elif [ "${HADOOP_SETUP_TYPE}" == "MR2" ] || [ "${HADOOP_SETUP_TYPE}" == "HDFS2" ]
+elif [ $version == "2" ]
+then
+    fsckscript="hdfs"
+elif [ $version == "3" ]
 then
     fsckscript="hdfs"
 fi

@@ -2,13 +2,17 @@
 
 # This script executes some teragens.  It is convenient for putting
 # data into your file system for some tests.
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
 
 cd ${HADOOP_HOME}
 
-if [ "${HADOOP_SETUP_TYPE}" == "MR1" ]
+if Hamster_hadoop_is_MR 1
 then
     terasortexamples="hadoop-examples-$HADOOP_VERSION.jar"
-elif [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+elif Hamster_hadoop_is_MR 2
+then
+    terasortexamples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
+elif Hamster_hadoop_is_MR 3
 then
     terasortexamples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
 fi
