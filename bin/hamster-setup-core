@@ -32,17 +32,9 @@ source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 # Create conf & log dirs node specific
 Hamster_make_all_local_dirs_node_specific
 
-mkdir -p $HAMSTER_LOCAL_CONF_DIR
-if [ $? -ne 0 ] ; then
-    echo "mkdir failed making ${HAMSTER_LOCAL_CONF_DIR}"
-    exit 1
-fi
+Hamster_mkdir $HAMSTER_LOCAL_CONF_DIR
 
-mkdir -p $HAMSTER_LOCAL_SCRATCHSPACE_DIR
-if [ $? -ne 0 ] ; then
-    echo "mkdir failed making ${HAMSTER_LOCAL_SCRATCHSPACE_DIR}"
-    exit 1
-fi
+Hamster_mkdir $HAMSTER_LOCAL_SCRATCHSPACE_DIR
 
 #
 # Setup primary conf, log, and local scratchspace directories for projects
@@ -62,46 +54,22 @@ do
     then
         if [ "${!confdirvar}X" != "X" ]
         then
-            mkdir -p ${!confdirvar}
-            if [ $? -ne 0 ] ; then
-                echo "mkdir failed making ${!confdirvar}"
-                exit 1
-            else
-                echo "Making ${!confdirvar}"
-            fi
+            Hamster_mkdir ${!confdirvar}
         fi
 
         if [ "${!logdirvar}X" != "X" ]
         then
-            mkdir -p ${!logdirvar}
-            if [ $? -ne 0 ] ; then
-                echo "mkdir failed making ${!logdirvar}"
-                exit 1
-            else
-                echo "Making ${!logdirvar}"
-            fi
+            Hamster_mkdir ${!logdirvar}
         fi
 
         if [ "${!piddirvar}X" != "X" ]
         then
-            mkdir -p ${!piddirvar}
-            if [ $? -ne 0 ] ; then
-                echo "mkdir failed making ${!piddirvar}"
-                exit 1
-            else
-                echo "Making ${!piddirvar}"
-            fi
+            Hamster_mkdir ${!piddirvar}
         fi
 
         if [ "${!localscratchspacedirvar}X" != "X" ]
         then
-            mkdir -p ${!localscratchspacedirvar}
-            if [ $? -ne 0 ] ; then
-                echo "mkdir failed making ${!localscratchspacedirvar}"
-                exit 1
-            else
-                echo "Making ${!localscratchspacedirvar}"
-            fi
+            Hamster_mkdir ${!localscratchspacedirvar}
         fi
     fi
 done
@@ -120,9 +88,9 @@ else
     then
         hostrangescript="${HAMSTER_SCRIPTS_HOME}/bin/hamster-expand-nodes"
         hostrangescriptoptions=""
-        echo "Host range script ${hostrangescript}"
+        Hamster_echo "Host range script ${hostrangescript}"
     else
-        echo "Cannot find tool to expand host ranges"
+        Hamster_echo "Cannot find tool to expand host ranges"
         exit 1
     fi
 fi
@@ -146,8 +114,9 @@ fi
 
 if [ "${HADOOP_SETUP}" == "yes" ]
 then
+    slave_file=$(Hamster_hadoop_slave_or_worker_file)
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_masters ${HADOOP_CONF_DIR}/masters
-    cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves ${HADOOP_CONF_DIR}/slaves
+    cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves ${HADOOP_CONF_DIR}/${slave_file}
     if [ -f "${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation" ]
     then
         cp ${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation ${HADOOP_CONF_DIR}/namenode_hdfs_federation

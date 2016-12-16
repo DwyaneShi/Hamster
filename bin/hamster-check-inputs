@@ -16,6 +16,7 @@
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
 
 __Hamster_check_is_enabled () {
     local projectnametocheck=$1
@@ -28,10 +29,10 @@ __Hamster_check_is_enabled () {
 
     if [ "${!varnametocheck}" != "yes" ]
     then
-        echo "${projectnameneededfor} requires ${projectnametocheck} to be setup, set ${varnametocheck} to yes"
+        Hamster_echo "${projectnameneededfor} requires ${projectnametocheck} to be setup, set ${varnametocheck} to yes"
         if [ "${extramsg}X" != "X" ]
         then
-            echo "${extramsg}"
+            Hamster_echo "${extramsg}"
         fi
         exit 1
     fi
@@ -50,7 +51,7 @@ __Hamster_check_dependencies_not_setuponly () {
     then
         if [ "${!modevarnametocheck}" == "setuponly" ]
         then
-            echo "Cannot run/setup ${projectnameneededfor} if ${projectnametocheck} mode is setuponly"
+            Hamster_echo "Cannot run/setup ${projectnameneededfor} if ${projectnametocheck} mode is setuponly"
             exit 1
         fi
     fi
@@ -62,7 +63,7 @@ __Hamster_check_if_set_is_yes_or_no () {
     if [ "${!varname}X" != "X" ] \
         && ( [ "${!varname}" != "yes" ] && [ "${!varname}" != "no" ] )
     then
-        echo "${varname} must be set to yes or no"
+        Hamster_echo "${varname} must be set to yes or no"
         exit 1
     else
         Hamster_print ${varname}
@@ -75,7 +76,7 @@ __Hamster_check_if_set_is_true_or_false () {
     if [ "${!varname}X" != "X" ] \
         && ( [ "${!varname}" != "true" ] && [ "${!varname}" != "false" ] )
     then
-        echo "${varname} must be set to true or false"
+        Hamster_echo "${varname} must be set to true or false"
         exit 1
     else
         Hamster_print ${varname}
@@ -87,7 +88,7 @@ __Hamster_check_environment_variable_must_be_set () {
 
     if [ "${!varname}X" == "X" ]
     then
-        echo "${varname} environment variable must be set"
+        Hamster_echo "${varname} environment variable must be set"
         exit 1
     else
         Hamster_print ${varname}
@@ -100,7 +101,7 @@ __Hamster_check_must_be_set () {
     
     if [ "${!varname}X" == "X" ]
     then
-        echo "${varname} must be set ${extramsg}"
+        Hamster_echo "${varname} must be set ${extramsg}"
         exit 1
     else
         Hamster_print ${varname}
@@ -112,7 +113,7 @@ __Hamster_check_if_set_is_a_directory () {
 
     if [ "${!varname}X" != "X" ] && [ ! -d ${!varname} ]
     then
-        echo "${varname} does not point to a directory"
+        Hamster_echo "${varname} does not point to a directory"
         exit 1
     else
         Hamster_print ${varname}
@@ -124,7 +125,7 @@ __Hamster_check_if_set_is_regular_file () {
 
     if [ "${!varname}X" != "X" ] && [ ! -f ${!varname} ]
     then
-        echo "${varname} does not point to a regular file"
+        Hamster_echo "${varname} does not point to a regular file"
         exit 1
     fi
 }
@@ -134,7 +135,7 @@ __Hamster_check_is_executable () {
 
     if [ ! -x ${!varname} ]
     then
-        echo "${varname}=\"${!varname}\" does not have execute permissions"
+        Hamster_echo "${varname}=\"${!varname}\" does not have execute permissions"
         exit 1
     else
         Hamster_print ${varname}
@@ -173,7 +174,7 @@ __Hamster_check_must_be_set "HAMSTER_SUBMISSION_TYPE"
 
 if [ "${HAMSTER_SUBMISSION_TYPE}" != "sbatchsrun" ]
 then
-    echo "HAMSTER_SUBMISSION_TYPE environment variable must be set to sbatchsrun"
+    Hamster_echo "HAMSTER_SUBMISSION_TYPE environment variable must be set to sbatchsrun"
     exit 1
 fi
 
@@ -199,7 +200,7 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
 
 if [ "${HAMSTER_TIMELIMIT_MINUTES}X" == "X" ]
 then
-    echo "HAMSTER_TIMELIMIT_MINUTES environment variable could not be calculated"
+    Hamster_echo "HAMSTER_TIMELIMIT_MINUTES environment variable could not be calculated"
     exit 1
 fi
 
@@ -214,7 +215,7 @@ if [ "${HAMSTER_JOB_TYPE}" != "hadoop" ] \
     && [ "${HAMSTER_JOB_TYPE}" != "script" ] \
     && [ "${HAMSTER_JOB_TYPE}" != "interactive" ]
 then
-    echo "HAMSTER_JOB_TYPE must be set to hadoop, testall, script, or interactive"
+    Hamster_echo "HAMSTER_JOB_TYPE must be set to hadoop, testall, script, or interactive"
     exit 1
 fi
 
@@ -227,7 +228,7 @@ hamsterstartupshutdowntime=`expr ${hamster_startup_time_value} + ${hamster_shutd
 
 if [ ${HAMSTER_TIMELIMIT_MINUTES} -le ${hamsterstartupshutdowntime} ]
 then
-    echo "timelimit must be atleast the sum of HAMSTER_STARTUP_TIME & HAMSTER_SHUTDOWN_TIME"
+    Hamster_echo "timelimit must be atleast the sum of HAMSTER_STARTUP_TIME & HAMSTER_SHUTDOWN_TIME"
     exit 1
 fi
 
@@ -237,7 +238,7 @@ then
 
     if [ ${hamster_startup_time_value} -lt 5 ]
     then
-        echo "HAMSTER_STARTUP_TIME must be >= 5 minutes if HAMSTER_PRE_JOB_RUN is set"
+        Hamster_echo "HAMSTER_STARTUP_TIME must be >= 5 minutes if HAMSTER_PRE_JOB_RUN is set"
         exit 1
     fi
 fi
@@ -248,7 +249,7 @@ then
     
     if [ ${hamster_shutdown_time_value} -lt 10 ]
     then
-        echo "HAMSTER_SHUTDOWN_TIME must be >= 10 minutes if HAMSTER_POST_JOB_RUN is set"
+        Hamster_echo "HAMSTER_SHUTDOWN_TIME must be >= 10 minutes if HAMSTER_POST_JOB_RUN is set"
         exit 1
     fi
 fi
@@ -279,7 +280,7 @@ done
 
 if [ "${HADOOP_SETUP}" != "yes" ]
 then
-    echo "There is nothing to setup"
+    Hamster_echo "There is nothing to setup"
     exit 1
 fi
 
@@ -295,7 +296,7 @@ do
     if [ "${HAMSTER_JOB_TYPE}" == "${projectlowercase}" ] \
         && [ "${!setupvar}" != "yes" ]
     then
-        echo "Cannot run ${projectlowercase} job type if ${setupvar} is not enabled"
+        Hamster_echo "Cannot run ${projectlowercase} job type if ${setupvar} is not enabled"
         exit 1
     fi
 done
@@ -303,7 +304,7 @@ done
 if [ "${HAMSTER_JOB_TYPE}" == "testall" ] \
     && [ "${HADOOP_SETUP}" != "yes" ]
 then
-    echo "Cannot run testall job type, nothing is enabled to be setup"
+    Hamster_echo "Cannot run testall job type, nothing is enabled to be setup"
     exit 1
 fi
 
@@ -325,12 +326,9 @@ then
 
     __Hamster_check_must_be_set "HADOOP_LOCAL_DIR" "to run Hadoop"
 
-    if [ "${HADOOP_SETUP_TYPE}" != "MR1" ] \
-        && [ "${HADOOP_SETUP_TYPE}" != "MR2" ] \
-        && [ "${HADOOP_SETUP_TYPE}" != "HDFS1" ] \
-        && [ "${HADOOP_SETUP_TYPE}" != "HDFS2" ]
+    if ! Hamster_hadoop_setup_type_is_valid ${HADOOP_SETUP_TYPE}
     then
-        echo "HADOOP_SETUP_TYPE must be set to MR1 or MR2 or HDFS1 or HDFS2"
+        Hamster_echo "HADOOP_SETUP_TYPE must be set to ${hamster_hadoop_valid_setup_type[@]}"
         exit 1
     fi
 
@@ -343,15 +341,15 @@ then
         && [ "${HADOOP_MODE}" != "setuponly" ] \
         && [ "${HADOOP_MODE}" != "hdfsonly" ]
     then
-        echo "HADOOP_MODE must be set to terasort, script, interactive, upgradehdfs, decommissionhdfsnodes, launch, setuponly, or hdfsonly"
+        Hamster_echo "HADOOP_MODE must be set to terasort, script, interactive, upgradehdfs, decommissionhdfsnodes, launch, setuponly, or hdfsonly"
         exit 1
     fi
 
-    if ([ "${HADOOP_SETUP_TYPE}" == "HDFS1" ] || [ "${HADOOP_SETUP_TYPE}" == "HDFS2" ]) \
+    if [ "$(Hamster_hadoop_type)" == "HDFS" ] \
         && [ "${HAMSTER_JOB_TYPE}" == "hadoop" ] \
         && [ "${HADOOP_MODE}" == "terasort" ]
     then
-        echo "HADOOP_SETUP_TYPE must be set to MR1 or MR2 for HADOOP_MODE = ${HADOOP_MODE}"
+        Hamster_echo "HADOOP_SETUP_TYPE must be set to valid MR type for HADOOP_MODE = ${HADOOP_MODE}"
         exit 1
     fi
 
@@ -362,9 +360,9 @@ then
 
     if [ "${HAMSTER_JOB_TYPE}" == "hadoop" ] && [ "${HADOOP_MODE}" == "upgradehdfs" ]
     then
-        if [ "${HADOOP_SETUP_TYPE}" != "MR2" ] && [ "${HADOOP_SETUP_TYPE}" != "HDFS2" ]
+        if [ "$(Hamster_hadoop_version)" == "1" ]
         then
-            echo "HADOOP_SETUP_TYPE must be set to MR2 or HDFS2 for HADOOP_MODE of ${HADOOP_MODE}"
+            Hamster_echo "${HAMSTER_JOB_TYPE} does not support ${HADOOP_MODE}"
             exit 1
         fi
 
@@ -372,16 +370,16 @@ then
         Hamster_vercomp ${HADOOP_VERSION} "2.2.0"
         if [ $? == "2" ]
         then 
-            echo "HADOOP_MODE of ${HADOOP_MODE} only supported in Hadoop 2.2.0 and more recent versions"
+            Hamster_echo "HADOOP_MODE of ${HADOOP_MODE} only supported in Hadoop 2.2.0 and more recent versions"
             exit 1
         fi
     fi
 
     if [ "${HAMSTER_JOB_TYPE}" == "hadoop" ] && [ "${HADOOP_MODE}" == "decommissionhdfsnodes" ]
     then
-        if [ "${HADOOP_SETUP_TYPE}" != "MR2" ] && [ "${HADOOP_SETUP_TYPE}" != "HDFS2" ]
+        if [ "$(Hamster_hadoop_version)" == "1" ]
         then
-            echo "HADOOP_SETUP_TYPE must be set to MR2 or HDFS2 for HADOOP_MODE of ${HADOOP_MODE}"
+            Hamster_echo "${HAMSTER_JOB_TYPE} does not support ${HADOOP_MODE}"
             exit 1
         fi
 
@@ -389,7 +387,7 @@ then
         Hamster_vercomp ${HADOOP_VERSION} "2.3.0"
         if [ $? == "2" ]
         then 
-            echo "HADOOP_MODE of ${HADOOP_MODE} only supported in Hadoop 2.3.0 and more recent versions"
+            Hamster_echo "HADOOP_MODE of ${HADOOP_MODE} only supported in Hadoop 2.3.0 and more recent versions"
             exit 1
         fi
 
@@ -397,7 +395,7 @@ then
 
         if [ ! "${HADOOP_DECOMMISSION_HDFS_NODE_SIZE}" -gt "0" ]
         then
-            echo "HADOOP_DECOMMISSION_HDFS_NODE_SIZE must be > 0"
+            Hamster_echo "HADOOP_DECOMMISSION_HDFS_NODE_SIZE must be > 0"
             exit 1
         fi
     fi
@@ -409,15 +407,14 @@ then
         && [ "${HADOOP_FILESYSTEM_MODE}" != "intellustre" ] \
         && [ "${HADOOP_FILESYSTEM_MODE}" != "hamsternetworkfs" ]
     then
-        echo "HADOOP_FILESYSTEM_MODE must be set to hdfs, hdfsoverlustre, hdfsovernetworkfs, rawnetworkfs, intellustre, or hamsternetworkfs"
+        Hamster_echo "HADOOP_FILESYSTEM_MODE must be set to hdfs, hdfsoverlustre, hdfsovernetworkfs, rawnetworkfs, intellustre, or hamsternetworkfs"
         exit 1
     fi
 
-    if ([ "${HADOOP_SETUP_TYPE}" == "HDFS1" ] \
-        || [ "${HADOOP_SETUP_TYPE}" == "HDFS2" ]) \
+    if [ "$(Hamster_hadoop_type)" == "HDFS" ] \
         && ! Hamster_hadoop_filesystem_mode_is_hdfs_type
     then
-        echo "HADOOP_FILESYSTEM_MODE must be set to hdfs, hdfsoverlustre, or hdfsovernetworkfs with HADOOP_SETUP_TYPE=${HADOOP_SETUP_TYPE}"
+        Hamster_echo "HADOOP_FILESYSTEM_MODE must be set to hdfs, hdfsoverlustre, or hdfsovernetworkfs with HADOOP_SETUP_TYPE=${HADOOP_SETUP_TYPE}"
         exit 1
     fi
 
@@ -425,7 +422,7 @@ then
         && [ "${HADOOP_MODE}" == "decommissionhdfsnodes" ] \
         && ! Hamster_hadoop_filesystem_mode_is_hdfs_on_network_type
     then
-        echo "HADOOP_FILESYSTEM_MODE must be set to hdfsoverlustre or hdfsovernetworkfs with HADOOP_MODE=${HADOOP_MODE}"
+        Hamster_echo "HADOOP_FILESYSTEM_MODE must be set to hdfsoverlustre or hdfsovernetworkfs with HADOOP_MODE=${HADOOP_MODE}"
         exit 1
     fi
 
@@ -433,15 +430,15 @@ then
         && [ "${HADOOP_MODE}" == "upgradehdfs" ] \
         && ! Hamster_hadoop_filesystem_mode_is_hdfs_type
     then
-        echo "HADOOP_FILESYSTEM_MODE must be set to hdfs, hdfsoverlustre, or hdfsovernetworkfs with HADOOP_MODE=${HADOOP_MODE}"
+        Hamster_echo "HADOOP_FILESYSTEM_MODE must be set to hdfs, hdfsoverlustre, or hdfsovernetworkfs with HADOOP_MODE=${HADOOP_MODE}"
         exit 1
     fi
 
     if ([ "${HADOOP_FILESYSTEM_MODE}" == "intellustre" ] \
         || [ "${HADOOP_FILESYSTEM_MODE}" == "hamsternetworkfs" ]) \
-        && [ "${HADOOP_SETUP_TYPE}" != "MR2" ]
+        && Hamster_hadoop_is_MR 1
     then
-        echo "HADOOP_FILESYSTEM_MODE=${HADOOP_FILESYSTEM_MODE} only works with HADOOP_SETUP_TYPE = MR2"
+        Hamster_echo "HADOOP_FILESYSTEM_MODE=${HADOOP_FILESYSTEM_MODE} only works with HADOOP_SETUP_TYPE = MR and HADOOP_VERSION > 1.X"
         exit 1
     fi
 
@@ -492,7 +489,7 @@ then
 
         if [ "${firstchar}" != "/" ]
         then
-            echo "HADOOP_HAMSTERNETWORKFS_PATH must be an absolute path"
+            Hamster_echo "HADOOP_HAMSTERNETWORKFS_PATH must be an absolute path"
             exit 1
         fi
     fi
@@ -501,7 +498,7 @@ then
     then
         if ! Hamster_hadoop_filesystem_mode_is_hdfs_type
         then
-            echo "HDFS federation can only work with an HDFS based file system, cannot work with HADOOP_FILESYSTEM_MODE = ${HADOOP_FILESYSTEM_MODE}"
+            Hamster_echo "HDFS federation can only work with an HDFS based file system, cannot work with HADOOP_FILESYSTEM_MODE = ${HADOOP_FILESYSTEM_MODE}"
             exit 1
         fi
 
@@ -509,7 +506,7 @@ then
         Hamster_vercomp ${HADOOP_VERSION} "2.2.0"
         if [ $? == "2" ]
         then 
-            echo "HDFS Fderation only supported in Hadoop 2.2.0 and more recent versions"
+            Hamster_echo "HDFS Fderation only supported in Hadoop 2.2.0 and more recent versions"
             exit 1
         fi
 
@@ -520,7 +517,7 @@ then
             eval mountvalue="\$$mountname"
             if [ "${mountvalue}X" == "X" ]
             then
-                echo "HDFS federation requires at least one mount specified for each namenode, ${mountname} must be specified" 
+                Hamster_echo "HDFS federation requires at least one mount specified for each namenode, ${mountname} must be specified" 
                 exit 1
             fi
         done
@@ -539,7 +536,7 @@ then
                 fi
                 if [[ "${mountvalue}" != /* ]]
                 then
-                    echo "HDFS federation mount must be an absolute path beginning with a /"
+                    Hamster_echo "HDFS federation mount must be an absolute path beginning with a /"
                     exit 1
                 fi
                 j=`expr ${j} + 1`
@@ -565,7 +562,7 @@ then
 
     if [ ${nodecount} -le "0" ]
     then
-        echo "No remaining nodes for Hadoop slave nodes, increase node count or adjust node allocations"
+        Hamster_echo "No remaining nodes for Hadoop slave nodes, increase node count or adjust node allocations"
         exit 1
     fi
 fi

@@ -23,7 +23,7 @@ __Hamster_output_internal_message () {
     shift
     local msg=$@
 
-    echo "Hamster Internal ${leveltype}: " $@
+    echo "$(hostname)> Hamster Internal ${leveltype}: " $@
 }
 
 Hamster_output_internal_warning () {

@@ -66,6 +66,8 @@ export HADOOP_HOME="${HADOOP_HOME:-HADOOPHOME}"
 # path.
 # export HADOOP_CONF_DIR=${HADOOP_HOME}/etc/hadoop
 export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-"HADOOPCONFDIR"}
+export HADOOP_HDFS_HOME="${HADOOP_HDFS_HOME:-HADOOPHDFSHOME}"
+export HADOOP_COMMON_HOME="${HADOOP_COMMON_HOME:-HADOOPCOMMONHOME}"
 
 # The maximum amount of heap to use (Java -Xmx).  If no unit
 # is provided, it will be converted to MB.  Daemons will
@@ -462,3 +464,4 @@ export HADOOP_SECURE_DN_PID_DIR=${HADOOP_PID_DIR}
 #
 # For example, to limit who can execute the namenode command,
 # export HADOOP_namenode_USER=hdfs
+export HADOOP_HEAPSIZE=HADOOP_DAEMON_HEAP_MAX

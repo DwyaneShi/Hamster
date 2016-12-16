@@ -136,3 +136,4 @@
 # See ResourceManager for some examples
 #
 #export YARN_SHAREDCACHEMANAGER_OPTS=
+export HADOOP_YARN_HOME="${HADOOP_YARN_HOME:-HADOOPYARNHOME}"

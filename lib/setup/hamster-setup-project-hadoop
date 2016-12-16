@@ -19,12 +19,13 @@
 # This script sets up configuration files for jobs.  For the most
 # part, it shouldn't be edited.  See job submission files for
 # configuration details.
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 if [ "${HADOOP_SETUP}" != "yes" ]
 then
     exit 0
 else
-    echo "Setting up Hadoop"
+    Hamster_echo "Setting up Hadoop"
 fi
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
@@ -40,7 +41,7 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 # hadoopnoderank set if succeed
 if ! Hamster_am_I_a_hadoop_node
 then
-    echo "I am not a Hadoop node"
+    Hamster_echo "I am not a Hadoop node"
     exit 0
 fi
 
@@ -52,13 +53,8 @@ extrahadoopopts=""
 extrayarnopts=""
 extrahadooptaskopts=""
 
-if [ ${HADOOP_SETUP_TYPE} == "MR1" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS1" ]
-then
-    # For some reason Hadoop 1.0 needs FQDN hosts in hosts-include
-    cp ${HADOOP_CONF_DIR}/slaves_fqdn ${HADOOP_CONF_DIR}/hosts-include
-else
-    cp ${HADOOP_CONF_DIR}/slaves ${HADOOP_CONF_DIR}/hosts-include
-fi
+slave_file=$(Hamster_hadoop_slave_or_worker_file)
+cp ${HADOOP_CONF_DIR}/${slave_file} ${HADOOP_CONF_DIR}/hosts-include
 hostsincludefile="${HADOOP_CONF_DIR}/hosts-include"
 hostsincludefilesubst=`echo "${hostsincludefile}" | sed "s/\\//\\\\\\\\\//g"`
 
@@ -83,7 +79,7 @@ else
         parallelcopies=10
     fi
 fi
-echo "HADOOP_PARALLEL_COPIES: ${HADOOP_PARALLEL_COPIES}"
+Hamster_print HADOOP_PARALLEL_COPIES
 
 # Recommendation from Cloudera, 10% of nodes w/ floor of ten, ceiling 200
 # My experience this is low b/c of high core counts, so bump higher to 50% 
@@ -97,7 +93,7 @@ if [ "${namenodehandlercount}" -gt "200" ]
 then
     namenodehandlercount=200
 fi
-echo "Namenode handler count: ${namenodehandlercount}"
+Hamster_print namenodehandlercount "Namenode Handler Count"
 
 # General rule of thumb is half namenode handler count, so * .25 instead of * .5
 datanodehandlercount=`echo "${HADOOP_SLAVE_COUNT} * .25" | bc -l | xargs printf "%1.0f"`
@@ -110,7 +106,7 @@ if [ "${datanodehandlercount}" -gt "200" ]
 then
     datanodehandlercount=200
 fi
-echo "Datanode handler count: ${datanodehandlercount}"
+Hamster_print datanodehandlercount "Datanode Handler Count"
 
 # Per description, about 4% of nodes but w/ floor of 10
 jobtrackerhandlercount=`echo "${HADOOP_SLAVE_COUNT} * .04" | bc -l | xargs printf "%1.0f"`
@@ -118,11 +114,11 @@ if [ "${jobtrackerhandlercount}" -lt "10" ]
 then
     jobtrackerhandlercount=10
 fi
-echo "Job tracker handler count: ${jobtrackerhandlercount}"
+Hamster_print jobtrackerhandlercount "Job Tracker Handler Count"
 
 # Per descrption, about square root number of nodes
 submitfilereplication=`echo "sqrt ( ${HADOOP_SLAVE_COUNT} )" | bc -l | xargs printf "%1.0f"`
-echo "Submit file replication: ${submitfilereplication}"
+Hamster_print submitfilereplication "Submit File Replication"
 
 # Optimal depends on file system
 if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ]
@@ -143,7 +139,7 @@ then
     # Assuming Lustre, so copy above 1M
     iobuffersize=1048576
 fi 
-echo "I/O buffer size: ${iobuffersize}"
+Hamster_print iobuffersize "I/O Buffer Size(B)"
 
 # Sets hamster_processor_count & hamster_threads_to_use
 Hamster_calculate_threads_to_use
@@ -157,7 +153,7 @@ then
 else
     maxtaskspernode=${hamster_threads_to_use}
 fi
-echo "Max tasks per node: ${maxtaskspernode}"
+Hamster_print maxtaskspernode "Max Tasks Per Node"
 
 if [ "${YARN_RESOURCE_MEMORY}X" != "X" ]
 then
@@ -165,7 +161,7 @@ then
 else
     yarnresourcememory=${hamster_memory_to_use}
 fi
-echo "Yarn resource memory: ${yarnresourcememory}"
+Hamster_print yarnresourcememory "Yarn Resource Memory"
 
 if [ "${HADOOP_CHILD_HEAPSIZE}X" != "X" ]
 then
@@ -180,7 +176,7 @@ else
         allchildheapsize=512
     fi
 fi
-echo "All child heap size: ${allchildheapsize}"
+Hamster_print allchildheapsize "All Child Heap Size(MB)"
 
 if [ "${HADOOP_CHILD_MAP_HEAPSIZE}X" != "X" ]
 then
@@ -188,20 +184,20 @@ then
 else
     mapchildheapsize=${allchildheapsize}
 fi
-echo "Map child heap size: ${mapchildheapsize}"
+Hamster_print mapchildheapsize "Map child heap size"
 
 if [ "${HADOOP_CHILD_REDUCE_HEAPSIZE}X" != "X" ]
 then
     reducechildheapsize=${HADOOP_CHILD_REDUCE_HEAPSIZE}
 else
-    if [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+    if Hamster_hadoop_is_MR 2 || Hamster_hadoop_is_MR 3
     then
         reducechildheapsize=`expr ${mapchildheapsize} \* 2`
     else
         reducechildheapsize=${allchildheapsize}
     fi
 fi
-echo "Reduce child heap size: ${reducechildheapsize}"
+Hamster_print reducechildheapsize "Reduce Child Heap Size(MB)"
 
 if [ "${HADOOP_CHILD_MAP_CONTAINER_BUFFER}X" != "X" ]
 then
@@ -215,7 +211,7 @@ else
     fi
     mapcontainerbuffer=`expr ${numgig} \* 256`
 fi
-echo "Map container buffer: ${mapcontainerbuffer}"
+Hamster_print mapcontainerbuffer "Map Container Buffer(MB)"
 
 if [ "${HADOOP_CHILD_REDUCE_CONTAINER_BUFFER}X" != "X" ]
 then
@@ -229,7 +225,7 @@ else
     fi
     reducecontainerbuffer=`expr ${numgig} \* 256`
 fi
-echo "Reduce container buffer: ${reducecontainerbuffer}"
+Hamster_print reducecontainerbuffer "Reduce Container Buffer(MB)"
 
 # Cloudera recommends 256 for io.sort.mb.  Cloudera blog suggests
 # io.sort.factor * 10 ~= io.sort.mb.
@@ -246,7 +242,7 @@ else
     fi
     iosortmb=`expr ${numgig} \* 128`
 fi
-echo "I/O sort mb: ${iosortmb}"
+Hamster_print iosortmb "I/O Sort(MB)"
 
 if [ "${HADOOP_IO_SORT_FACTOR}X" != "X" ]
 then
@@ -254,12 +250,12 @@ then
 else
     iosortfactor=`expr ${iosortmb} \/ 10`
 fi
-echo "I/O sort factor: ${iosortfactor}"
+Hamster_print iosortfactor "I/O Sort Factor"
 
 mapcontainermb=`expr ${mapchildheapsize} + ${mapcontainerbuffer}`
 reducecontainermb=`expr ${reducechildheapsize} + ${reducecontainerbuffer}`
-echo "Map container mb: ${mapcontainermb}"
-echo "Reduce container mb: ${reducecontainermb}"
+Hamster_print mapcontainermb "Map Container(MB)"
+Hamster_print reducecontainermb "Reduce Container(MB)"
 
 yarnmincontainer=1024
 if [ ${mapcontainermb} -lt ${yarnmincontainer} ]
@@ -271,7 +267,7 @@ if [ ${reducecontainermb} -lt ${yarnmincontainer} ]
 then
     yarnmincontainer=${reducecontainermb}
 fi
-echo "Yarn min container: ${yarnmincontainer}"
+Hamster_print yarnmincontainer "Yarn Min Container"
 
 yarnmaxcontainer=${yarnresourcememory}
 
@@ -279,7 +275,7 @@ if [ ${reducecontainermb} -gt ${yarnmaxcontainer} ]
 then
     yarnmaxcontainer=${reducecontainermb}
 fi
-echo "Yarn max container: ${yarnmaxcontainer}"
+Hamster_print yarnmaxcontainer "Yarn Max Container"
 
 if [ "${HADOOP_MAPREDUCE_SLOWSTART}X" != "X" ]
 then
@@ -287,7 +283,7 @@ then
 else
     mapredslowstart="0.05"
 fi
-echo "Mapred slow start: ${mapredslowstart}"
+Hamster_print mapredslowstart "Map Reduce Slow Start"
 
 if [ "${HADOOP_DEFAULT_MAP_TASKS}X" != "X" ]
 then
@@ -431,17 +427,17 @@ then
     do
         if [ ! -d "${hdfspath}" ]
         then
-            mkdir -p ${hdfspath}
-            if [ $? -ne 0 ] ; then
-                echo "mkdir failed making ${hdfspath}"
-                exit 1
-            fi
+            Hamster_mkdir ${hdfspath}
         fi
 
-        if [ ${HADOOP_SETUP_TYPE} == "MR1" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS1" ]
+        version=$(Hamster_hadoop_version)
+        if [ "${version}" == "1" ]
         then
             datanodedirtmp="${datanodedirtmp}${datanodedirtmp:+","}${hdfspath}/dfs/data"
-        elif [ ${HADOOP_SETUP_TYPE}  == "MR2" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS2" ]
+        elif [ "${version}" == "2" ]
+        then
+            datanodedirtmp="${datanodedirtmp}${datanodedirtmp:+","}file://${hdfspath}/dfs/data"
+        elif [ "${version}" == "3" ]
         then
             datanodedirtmp="${datanodedirtmp}${datanodedirtmp:+","}file://${hdfspath}/dfs/data"
         fi
@@ -456,11 +452,7 @@ then
     
     if [ ! -d "${hamster_hadooptmpdir}" ]
     then
-        mkdir -p ${hamster_hadooptmpdir}
-        if [ $? -ne 0 ] ; then
-            echo "mkdir failed making ${hamster_hadooptmpdir}"
-            exit 1
-        fi
+        Hamster_mkdir ${hamster_hadooptmpdir}
 
         if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsoverlustre" ]
         then
@@ -473,10 +465,14 @@ then
         fi
     fi
     
-    if [ ${HADOOP_SETUP_TYPE} == "MR1" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS1" ]
+    version=$(Hamster_hadoop_version)
+    if [ "${version}" == "1" ]
     then
         datanodedir="$\{hadoop.tmp.dir\}\/dfs\/data"
-    elif [ ${HADOOP_SETUP_TYPE}  == "MR2" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS2" ]
+    elif [ "${version}" == "2" ]
+    then
+        datanodedir="file:\/\/\$\{hadoop.tmp.dir\}\/dfs\/data"
+    elif [ "${version}" == "3" ]
     then
         datanodedir="file:\/\/\$\{hadoop.tmp.dir\}\/dfs\/data"
     fi
@@ -505,20 +501,12 @@ then
     
     if [ ! -d "${HADOOP_RAWNETWORKFS_PATH}" ]
     then
-        mkdir -p ${HADOOP_RAWNETWORKFS_PATH}
-        if [ $? -ne 0 ] ; then
-            echo "mkdir failed making ${HADOOP_RAWNETWORKFS_PATH}"
-            exit 1
-        fi
+        Hamster_mkdir ${HADOOP_RAWNETWORKFS_PATH}
     fi
         
     if [ ! -d "${hamster_hadooptmpdir}" ]
     then
-        mkdir -p ${hamster_hadooptmpdir}
-        if [ $? -ne 0 ] ; then
-            echo "mkdir failed making ${hamster_hadooptmpdir}"
-            exit 1
-        fi
+        Hamster_mkdir ${hamster_hadooptmpdir}
     fi
     
     pathcount=1
@@ -530,11 +518,7 @@ then
 
     if [ ! -d "${hamster_hadooptmpdir}" ]
     then
-        mkdir -p ${hamster_hadooptmpdir}
-        if [ $? -ne 0 ] ; then
-            echo "mkdir failed making ${hamster_hadooptmpdir}"
-            exit 1
-        fi
+        Hamster_mkdir ${hamster_hadooptmpdir}
     fi
 
     pathcount=1
@@ -561,11 +545,7 @@ then
         
         if [ ! -d "${localstoredirtmp}" ]
         then
-            mkdir -p ${localstoredirtmp}
-            if [ $? -ne 0 ] ; then
-                echo "mkdir failed making ${localstoredirtmp}"
-                exit 1
-            fi
+            Hamster_mkdir ${localstoredirtmp}
         fi
 
         mapredlocalstoredir="${mapredlocalstoredir}${mapredlocalstoredir:+","}${mapredlocalstoredirtmp}"
@@ -612,20 +592,12 @@ extrayarnopts="${extrayarnopts}${extrayarnopts+" "}-Djava.io.tmpdir=${YARN_LOCAL
 
 if [ ! -d "${HADOOP_LOCAL_SCRATCHSPACE_DIR}/tmp" ]
 then
-    mkdir -p ${HADOOP_LOCAL_SCRATCHSPACE_DIR}/tmp
-    if [ $? -ne 0 ] ; then
-        echo "mkdir failed making ${HADOOP_LOCAL_SCRATCHSPACE_DIR}/tmp"
-        exit 1
-    fi
+    Hamster_mkdir ${HADOOP_LOCAL_SCRATCHSPACE_DIR}/tmp
 fi
 
 if [ ! -d "${YARN_LOCAL_SCRATCHSPACE_DIR}/tmp" ]
 then
-    mkdir -p ${YARN_LOCAL_SCRATCHSPACE_DIR}/tmp
-    if [ $? -ne 0 ] ; then
-        echo "mkdir failed making ${YARN_LOCAL_SCRATCHSPACE_DIR}/tmp"
-        exit 1
-    fi
+    Hamster_mkdir ${YARN_LOCAL_SCRATCHSPACE_DIR}/tmp
 fi
 
 # disable hsperfdata if using NO_LOCAL_DIR
@@ -642,33 +614,56 @@ fi
 
 # Hamster_find_conffile will set the 'pre' filenames
 
-if [ ${HADOOP_SETUP_TYPE} == "MR1" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS1" ]
+version=$(Hamster_hadoop_version)
+Hamster_print version
+if [ "$version" == "1" ]
 then
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-1.X.xml" "pre_coresitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-site-1.X.xml" "pre_mapredsitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop-env-1.X.sh" "pre_hadoopenvsh"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-1.X.xml" "pre_hdfssitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop.log4j-1.X.properties" "pre_log4jproperties"
-elif [ ${HADOOP_SETUP_TYPE}  == "MR2" ] || [ ${HADOOP_SETUP_TYPE} == "HDFS2" ]
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site.xml" "pre_coresitexml" 
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-site.xml" "pre_mapredsitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop-env.sh" "pre_hadoopenvsh"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site.xml" "pre_hdfssitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop.log4j.properties" "pre_log4jproperties"
+elif [ "$version" == "2" ]
 then
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-2.X.xml" "pre_coresitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-site-2.X.xml" "pre_mapredsitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop-env-2.X.sh" "pre_hadoopenvsh"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-2.X.xml" "pre_hdfssitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop.log4j-2.X.properties" "pre_log4jproperties"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site.xml" "pre_coresitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-site.xml" "pre_mapredsitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop-env.sh" "pre_hadoopenvsh"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site.xml" "pre_hdfssitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop.log4j.properties" "pre_log4jproperties"
 
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-env-2.X.sh" "pre_mapredenvsh"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "yarn-site-2.X.xml" "pre_yarnsitexml"
-    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "yarn-env-2.X.sh" "pre_yarnenvsh"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-env.sh" "pre_mapredenvsh"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "yarn-site.xml" "pre_yarnsitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "yarn-env.sh" "pre_yarnenvsh"
 
     if [ "${HADOOP_FILESYSTEM_MODE}" == "intellustre" ]
     then
-        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-2.X-intellustre.xml" "pre_coresitexml_intellustre"
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-intellustre.xml" "pre_coresitexml_intellustre"
     fi
 
     if Hamster_hdfs_federation_enabled
     then
-        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-2.X-viewfsmount.xml" "pre_coresitexml_viewfsmount"
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-viewfsmount.xml" "pre_coresitexml_viewfsmount"
+    fi
+elif [ "$version" == "3" ]
+then
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site.xml" "pre_coresitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-site.xml" "pre_mapredsitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop-env.sh" "pre_hadoopenvsh"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site.xml" "pre_hdfssitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hadoop.log4j.properties" "pre_log4jproperties"
+
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "mapred-env.sh" "pre_mapredenvsh"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "yarn-site.xml" "pre_yarnsitexml"
+    Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "yarn-env.sh" "pre_yarnenvsh"
+
+    if [ "${HADOOP_FILESYSTEM_MODE}" == "intellustre" ]
+    then
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-intellustre.xml" "pre_coresitexml_intellustre"
+    fi
+
+    if Hamster_hdfs_federation_enabled
+    then
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "core-site-viewfsmount.xml" "pre_coresitexml_viewfsmount"
     fi
 else
     Hamster_output_internal_error "Illegal HADOOP_SETUP_TYPE \"${HADOOP_SETUP_TYPE}\" specified"
@@ -691,11 +686,9 @@ extrahadoopoptssubst=`echo "${extrahadoopopts}" | sed "s/\\//\\\\\\\\\//g"`
 # Setup Hadoop configuration files and environment files
 #
 
-if [ ${HADOOP_SETUP_TYPE}  == "MR1" ] \
-    || [ ${HADOOP_SETUP_TYPE}  == "MR2" ] \
-    || [ ${HADOOP_SETUP_TYPE}  == "HDFS1" ] \
-    || [ ${HADOOP_SETUP_TYPE}  == "HDFS2" ]
+if Hamster_hadoop_setup_type_is_valid ${HADOOP_SETUP_TYPE}
 then
+    Hamster_echo "HADOOP_SETUP_TYPE is valid"
     cp ${pre_coresitexml} ${post_coresitexml}
 
     if [ "${pre_coresitexml_intellustre}X" != "X" ]
@@ -801,8 +794,14 @@ then
     cp ${pre_log4jproperties} ${post_log4jproperties}
 fi
 
-if [ ${HADOOP_SETUP_TYPE} == "MR1" ] \
-    || [ ${HADOOP_SETUP_TYPE}  == "MR2" ]
+# HADOOP CONF
+hadoopmapredlogdirsubst=`echo "${HADOOP_LOG_DIR}" | sed "s/\\//\\\\\\\\\//g"`
+hadoopconfdirsubst=`echo "${HADOOP_CONF_DIR}" | sed "s/\\//\\\\\\\\\//g"`
+hadoophomesubst=`echo "${HADOOP_HOME}" | sed "s/\\//\\\\\\\\\//g"`
+hadoopcommonhomesubst=`echo "${HADOOP_COMMON_HOME}" | sed "s/\\//\\\\\\\\\//g"`
+hadoopmapredhomesubst=`echo "${HADOOP_MAPRED_HOME}" | sed "s/\\//\\\\\\\\\//g"`
+
+if [ "$(Hamster_hadoop_type)" == "MR" ]
 then
     yardappmapreduceamstagingdirsubst=`echo "${yardappmapreduceamstagingdir}" | sed "s/\\//\\\\\\\\\//g"`
     extrahadooptaskoptssubst=`echo "${extrahadooptaskopts}" | sed "s/\\//\\\\\\\\\//g"`
@@ -833,7 +832,6 @@ then
         -e "s/SUBMITFILEREPLICATION/${submitfilereplication}/g" \
         -e "s/MAPOUTPUTCOLLECTORCLASS/${mapoutputcollectorclass}/g" \
         -e "s/REDUCESHUFFLECONSUMERPLUGIN/${reduceshuffleconsumerplugin}/g" \
-        -e "s/SHUFFLEPROVIDERSERVICES/${shuffleproviderservices}/g" \
         -e "s/RDMABUFSIZE/${rdmabufsize}/g" \
         -e "s/HADOOPJOBHISTORYADDRESS/${default_hadoop_jobhistoryserver_address}/g" \
         -e "s/HADOOPJOBHISTORYWEBAPPADDRESS/${default_hadoop_jobhistoryserver_webapp_address}/g" \
@@ -842,10 +840,11 @@ then
         -e "s/YARNAPPMAPREDUCEAMSTAGINGDIR/${yardappmapreduceamstagingdirsubst}/g" \
         -e "s/HADOOPEXTRATASKJAVAOPTS/ ${extrahadooptaskoptssubst}/g" \
         -e "s/EXTRAHADOOPOPTS/ ${extrahadoopoptssubst}/g" \
+        -e "s/HADOOPMAPREDHOME/${hadoopmapredhomesubst}/g" \
         ${post_mapredsitexml}
 fi
 
-if [ ${HADOOP_SETUP_TYPE}  == "MR2" ]
+if Hamster_hadoop_is_MR 2
 then
     #
     # A few settings depend on version
@@ -861,6 +860,9 @@ then
         yarnauxservices="mapreduce_shuffle"
         yarnauxmapreduceshuffle="yarn.nodemanager.aux-services.mapreduce_shuffle.class"
     fi
+
+    Hamster_print yarnauxservices "YARN Aux Services"
+    Hamster_print yarnauxmapreduceshuffle "YARN Aux MapReduce Shuffle"
 
     cp ${pre_yarnsitexml} ${post_yarnsitexml}
 
@@ -882,14 +884,9 @@ then
         -e "s/YARNNODEMANAGERWEBAPPADDRESS/${default_yarn_nodemanager_webapp_address}/g" \
         -e "s/YARNDEFAULTUSER/${USER}/g" \
         -e "s/YARNRESROUCECPUVCORES/${hamster_processor_count}/g" \
+        -e "s/HADOOPMAPREDHOME/${hadoopmapredhomesubst}/g" \
         ${post_yarnsitexml}
     
-    hadoopmapredlogdirsubst=`echo "${HADOOP_LOG_DIR}" | sed "s/\\//\\\\\\\\\//g"`
-    hadoopconfdirsubst=`echo "${HADOOP_CONF_DIR}" | sed "s/\\//\\\\\\\\\//g"`
-    hadoophomesubst=`echo "${HADOOP_HOME}" | sed "s/\\//\\\\\\\\\//g"`
-    hadoopcommonhomesubst=`echo "${HADOOP_COMMON_HOME}" | sed "s/\\//\\\\\\\\\//g"`
-    hadoopmapredhomesubst=`echo "${HADOOP_MAPRED_HOME}" | sed "s/\\//\\\\\\\\\//g"`
-
     cp ${pre_mapredenvsh} ${post_mapredenvsh}
 
     sed -i \
@@ -937,15 +934,88 @@ then
     fi
 fi
 
+if Hamster_hadoop_is_MR 3
+then
+    #
+    # A few settings depend on version
+    #
+
+    yarnauxservices="mapreduce_shuffle"
+    yarnauxmapreduceshuffle="yarn.nodemanager.aux-services.mapreduce_shuffle.class"
+
+    Hamster_print yarnauxservices "YARN Aux Services"
+    Hamster_print yarnauxmapreduceshuffle "YARN Aux MapReduce Shuffle"
+
+    cp ${pre_yarnsitexml} ${post_yarnsitexml}
+
+    sed -i \
+        -e "s/HADOOP_MASTER_HOST/${HADOOP_MASTER_NODE}/g" \
+        -e "s/YARNMINCONTAINER/${yarnmincontainer}/g" \
+        -e "s/YARNMAXCONTAINER/${yarnmaxcontainer}/g" \
+        -e "s/YARNRESOURCEMEMORY/${yarnresourcememory}/g" \
+        -e "s/LOCALSTOREDIR/${yarnlocalstoredir}/g" \
+        -e "s/YARNAUXSERVICES/${yarnauxservices}/g" \
+        -e "s/YARNAUXMAPREDUCESHUFFLE/${yarnauxmapreduceshuffle}/g" \
+        -e "s/YARNRESOURCEMANAGERADDRESS/${default_yarn_resourcemanager_address}/g" \
+        -e "s/YARNRESOURCEMANAGERSCHEDULERADDRESS/${default_yarn_resourcemanager_scheduler_address}/g" \
+        -e "s/YARNRESOURCEMANAGERWEBAPPADDRESS/${default_yarn_resourcemanager_webapp_address}/g" \
+        -e "s/YARNRESOURCEMANAGERWEBAPPHTTPSADDRESS/${default_yarn_resourcemanager_webapp_https_address}/g" \
+        -e "s/YARNRESOURCEMANAGERRESOURCETRACKERADDRESS/${default_yarn_resourcemanager_resourcetracker_address}/g" \
+        -e "s/YARNRESOURCEMANAGERADMINADDRESS/${default_yarn_resourcemanager_admin_address}/g" \
+        -e "s/YARNLOCALIZERADDRESS/${default_yarn_nodemanager_localizer_address}/g" \
+        -e "s/YARNNODEMANAGERWEBAPPADDRESS/${default_yarn_nodemanager_webapp_address}/g" \
+        -e "s/YARNDEFAULTUSER/${USER}/g" \
+        -e "s/YARNRESROUCECPUVCORES/${hamster_processor_count}/g" \
+        -e "s/HADOOPMAPREDHOME/${hadoopmapredhomesubst}/g" \
+        ${post_yarnsitexml}
+    
+    cp ${pre_mapredenvsh} ${post_mapredenvsh}
+
+    sed -i \
+        -e "s/HADOOP_JAVA_HOME/${javahomesubst}/g" \
+        -e "s/HADOOP_DAEMON_HEAP_MAX/${hadoopdaemonheapmax}/g" \
+        -e "s/HADOOPTIMEOUTSECONDS/${hamster_hadoop_stop_timeout}/g" \
+        -e "s/HADOOPCONFDIR/${hadoopconfdirsubst}/g" \
+        -e "s/HADOOPHOME/${hadoophomesubst}/g" \
+        -e "s/HADOOPCOMMONHOME/${hadoopcommonhomesubst}/g" \
+        -e "s/HADOOPMAPREDHOME/${hadoopmapredhomesubst}/g" \
+        ${post_mapredenvsh}
+
+    hadoopyarnhomesubst=`echo "${HADOOP_YARN_HOME}" | sed "s/\\//\\\\\\\\\//g"`
+
+    extrayarnlibrarypathsubst=`echo "${extrayarnlibrarypath}" | sed "s/\\//\\\\\\\\\//g"`
+    extrayarnoptssubst=`echo "${extrayarnopts}" | sed "s/\\//\\\\\\\\\//g"`
+
+    cp ${pre_yarnenvsh} ${post_yarnenvsh}
+
+    sed -i \
+        -e "s/HADOOP_JAVA_HOME/${javahomesubst}/g" \
+        -e "s/HADOOP_DAEMON_HEAP_MAX/${hadoopdaemonheapmax}/g" \
+        -e "s/HADOOPTIMEOUTSECONDS/${hamster_hadoop_stop_timeout}/g" \
+        -e "s/YARNUSERNAME/${HADOOP_YARN_USER}/g" \
+        -e "s/HADOOPYARNHOME/${hadoopyarnhomesubst}/g" \
+        -e "s/EXTRAYARNLIBRARYPATH/${extrayarnlibrarypathsubst}/g" \
+        -e "s/EXTRAYARNOPTS/${extrayarnoptssubst}/g" \
+        ${post_yarnenvsh}
+
+    if [ "${HADOOP_ENVIRONMENT_EXTRA_PATH}X" != "X" ] && [ -f ${HADOOP_ENVIRONMENT_EXTRA_PATH} ]
+    then
+        cat ${HADOOP_ENVIRONMENT_EXTRA_PATH} >> ${post_yarnenvsh}
+    else
+        echo "ulimit -n ${hamster_openfilescount}" >> ${post_yarnenvsh}
+        echo "ulimit -u ${hamster_userprocessescount}" >> ${post_yarnenvsh}
+    fi
+fi
+
 if Hamster_hadoop_filesystem_mode_is_hdfs_type
 then
     cp ${pre_hdfssitexml} ${post_hdfssitexml}
 
     if Hamster_hdfs_federation_enabled
     then
-        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-2.X-hdfs-federation.xml" "pre_hdfssitexml_namenode"
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-hdfs-federation.xml" "pre_hdfssitexml_namenode"
     else
-        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-2.X-hdfs-namenode.xml" "pre_hdfssitexml_namenode"
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-hdfs-namenode.xml" "pre_hdfssitexml_namenode"
     fi
 
     sed -i -e "/@NAMENODE@/{r ${pre_hdfssitexml_namenode}" -e "d}" ${post_hdfssitexml}
@@ -960,7 +1030,7 @@ then
 
         sed -i -e "s/NAMESERVICES/${nameservices}/g" ${post_hdfssitexml}
 
-        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-2.X-hdfs-federation-namenode.xml" "pre_hdfssitexml_namenodeinfo"
+        Hamster_find_conffile "Hadoop" ${HADOOP_CONF_FILES:-""} "hdfs-site-hdfs-federation-namenode.xml" "pre_hdfssitexml_namenodeinfo"
 
         # Now fill each additional namenode
         for i in `seq 1 ${HDFS_FEDERATION_NAMENODE_COUNT}`

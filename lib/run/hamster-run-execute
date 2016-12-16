@@ -22,6 +22,7 @@
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 # For this run, we will use cluster specific paths
 Hamster_make_all_local_dirs_node_specific
@@ -29,13 +30,13 @@ Hamster_make_all_local_dirs_node_specific
 __Yarn_job_kill_handler () {
     childpid=$1
 
-    echo "Received interrupt from user, killing yarn jobs and script"
+    Hamster_echo "Received interrupt from user, killing yarn jobs and script"
 
     prepjobs=`${HADOOP_HOME}/bin/mapred job -list 2> /dev/null | grep PREP | awk '{print $1}'`
 
     for jobid in $prepjobs
     do
-        echo "Killing Yarn job id ${jobid}"
+        Hamster_echo "Killing Yarn job id ${jobid}"
         command="${HADOOP_HOME}/bin/mapred job -kill ${jobid}"
         echo "Running $command" >&2
         $command
@@ -45,7 +46,7 @@ __Yarn_job_kill_handler () {
 
     for jobid in $runningjobs
     do
-        echo "Killing Yarn job id ${jobid}"
+        Hamster_echo "Killing Yarn job id ${jobid}"
         command="${HADOOP_HOME}/bin/mapred job -kill ${jobid}"
         echo "Running $command" >&2
         $command
@@ -107,34 +108,35 @@ then
 # Some systems have SIGUSR1 as USR1 so we hardcode the value of 10
 
     myhostname=`hostname`
-    echo "*******************************************************"
-    echo "* Run"
-    echo "*"
-    echo "* ${HAMSTER_REMOTE_CMD:-ssh}${HAMSTER_REMOTE_CMD_OPTS:+" "}${HAMSTER_REMOTE_CMD_OPTS} ${myhostname} kill -s 10 ${mypid}"
-    echo "*"
-    echo "* to exit ${typemessage} early."
+    Hamster_echo "*******************************************************"
+    Hamster_echo "* Run"
+    Hamster_echo "*"
+    Hamster_echo "* ${HAMSTER_REMOTE_CMD:-ssh}${HAMSTER_REMOTE_CMD_OPTS:+" "}${HAMSTER_REMOTE_CMD_OPTS} ${myhostname} kill -s 10 ${mypid}"
+    Hamster_echo "*"
+    Hamster_echo "* to exit ${typemessage} early."
     if [ "${jobtype}" == "script" ]
     then
-        echo "*"
-        echo "* Warning: killing early may not kill jobs submitted to an internally"
-        echo "* managed scheduler within Hamster.  The job will be canceled during teardown"
-        echo "* of daemons.  Extraneous error messages from your job may occur until then."
+        Hamster_echo "*"
+        Hamster_echo "* Warning: killing early may not kill jobs submitted to an internally"
+        Hamster_echo "* managed scheduler within Hamster.  The job will be canceled during teardown"
+        Hamster_echo "* of daemons.  Extraneous error messages from your job may occur until then."
 
         # We use SIGUSR1 and SIGUSR2 above & below.  Signal 28, SIGWINCH seems a good choice
         # to use.
-        if [ "${HADOOP_SETUP}" == "yes" ] && [ "${HADOOP_SETUP_TYPE}" == "MR2" ]
+        if [ "${HADOOP_SETUP}" == "yes" ] \
+            && (Hamster_hadoop_is_MR 2 || Hamster_hadoop_is_MR 3)
         then
-            echo "*"
-            echo "* Hamster is aware that Yarn has been launched.  If user wishes to"
-            echo "* kill all currently submitted Yarn jobs in the PREP or" 
-            echo "* RUNNING state to be killed before killing the job, run:"
-            echo "*"
-            echo "* ${HAMSTER_REMOTE_CMD:-ssh}${HAMSTER_REMOTE_CMD_OPTS:+" "}${HAMSTER_REMOTE_CMD_OPTS} ${myhostname} kill -s 28 ${mypid}"
+            Hamster_echo "*"
+            Hamster_echo "* Hamster is aware that Yarn has been launched.  If user wishes to"
+            Hamster_echo "* kill all currently submitted Yarn jobs in the PREP or" 
+            Hamster_echo "* RUNNING state to be killed before killing the job, run:"
+            Hamster_echo "*"
+            Hamster_echo "* ${HAMSTER_REMOTE_CMD:-ssh}${HAMSTER_REMOTE_CMD_OPTS:+" "}${HAMSTER_REMOTE_CMD_OPTS} ${myhostname} kill -s 28 ${mypid}"
 
             trap "__Yarn_job_kill_handler ${childpid}" 28
         fi
     fi
-    echo "*******************************************************"
+    Hamster_echo "*******************************************************"
 
     trap "echo \"Received interrupt from user, ${typemessage} ending early.\"; kill -s 9 ${childpid}" 10
 fi    
@@ -152,9 +154,9 @@ childstatus=$?
 
 if [ "${childstatus}" == "0" ]
 then
-    echo "*******************************************************"
-    echo "* End of ${typemessage}"
-    echo "*******************************************************"
+    Hamster_echo "*******************************************************"
+    Hamster_echo "* End of ${typemessage}"
+    Hamster_echo "*******************************************************"
 fi
 
 exit $childstatus

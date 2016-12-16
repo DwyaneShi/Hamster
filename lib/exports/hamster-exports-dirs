@@ -19,6 +19,7 @@
 # Export directories promised by user documentation.
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
@@ -80,23 +81,31 @@ __Hamster_make_hadoop_local_dirs () {
             export HADOOP_PID_DIR=`echo $HADOOP_PID_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
         fi
 
-        export YARN_CONF_DIR=${HADOOP_CONF_DIR}
-        export YARN_LOG_DIR=${HADOOP_LOG_DIR}
-        export YARN_LOCAL_SCRATCHSPACE_DIR=${HADOOP_LOCAL_SCRATCHSPACE_DIR}
-        export YARN_PID_DIR=${HADOOP_PID_DIR}
-
-        # Hadoop has this completely random other one
-        export HADOOP_MAPRED_PID_DIR=${HADOOP_PID_DIR}
+        if [ "$(Hamster_hadoop_version)" == "1" ] \
+            || [ "$(Hamster_hadoop_version)" == "2" ]
+        then
+            export YARN_CONF_DIR=${HADOOP_CONF_DIR}
+            export YARN_LOG_DIR=${HADOOP_LOG_DIR}
+            export YARN_LOCAL_SCRATCHSPACE_DIR=${HADOOP_LOCAL_SCRATCHSPACE_DIR}
+            export YARN_PID_DIR=${HADOOP_PID_DIR}
+            Hamster_print YARN_CONF_DIR
+            Hamster_print YARN_LOG_DIR
+            Hamster_print YARN_LOCAL_SCRATCHSPACE_DIR
+            Hamster_print YARN_PID_DIR
+        fi
 
         Hamster_print HADOOP_CONF_DIR
         Hamster_print HADOOP_LOG_DIR
         Hamster_print HADOOP_LOCAL_SCRATCHSPACE_DIR
         Hamster_print HADOOP_PID_DIR
-        Hamster_print YARN_CONF_DIR
-        Hamster_print YARN_LOG_DIR
-        Hamster_print YARN_LOCAL_SCRATCHSPACE_DIR
-        Hamster_print YARN_PID_DIR
-        Hamster_print HADOOP_MAPRED_PID_DIR
+
+        # Hadoop has this completely random other one
+        Hamster_vercomp ${HADOOP_VERSION} "3.0.0"
+        if [ $? == "2" ]
+        then
+            export HADOOP_MAPRED_PID_DIR=${HADOOP_PID_DIR}
+            Hamster_print HADOOP_MAPRED_PID_DIR
+        fi
     fi
 }
 

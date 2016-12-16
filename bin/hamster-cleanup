@@ -21,6 +21,7 @@
 # details.
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 myhostname=`hostname`
             
@@ -35,7 +36,7 @@ then
         do
             if [ -d "${hdfspath}" ]
             then
-                echo "${myhostname}: Clearing directory ${hdfspath}"
+                Hamster_echo "${myhostname}: Clearing directory ${hdfspath}"
                 rm -rf ${hdfspath}
             fi
         done
@@ -54,7 +55,7 @@ then
         do
             if [ -d "${localstorepath}" ]
             then
-                echo "${myhostname}: Clearing directory ${localstorepath}"
+                Hamster_echo "${myhostname}: Clearing directory ${localstorepath}"
                 rm -rf ${localstorepath}
             fi
         done

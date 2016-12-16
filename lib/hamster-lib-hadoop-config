@@ -18,7 +18,4 @@
 
 # This file has common hadoop configs
 
-Hamster_hadoop_valid_setup_type () {
-    local hadoop_valid_setup_type=("MR" "HDFS")
-    return $hadoop_valid_setup_type
-}
+hamster_hadoop_valid_setup_type=("MR" "HDFS")

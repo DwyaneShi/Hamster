@@ -288,13 +288,5 @@
   </description>
 </property>
 
-<property>
-  <name>mapreduce.job.shuffle.provider.services</name>
-  <value>SHUFFLEPROVIDERSERVICES</value>
-  <description>A comma-separated list of classes that should be loaded as additional ShuffleProviderPlugin(s).
-    A ShuffleProviderPlugin can serve shuffle requests from reducetasks.
-  </description>
-</property>
-
 </configuration>
 

@@ -38,16 +38,16 @@ fi
 Hamster_make_all_local_dirs_node_specific
 
 # Output some general info
-echo "*******************************************************"
-echo "* Hamster General Job Info"
-echo "*"
-echo "* Job Nodelist: ${HAMSTER_NODELIST}"
-echo "* Job Nodecount: ${HAMSTER_NODE_COUNT}"
-echo "* Job Timelimit in Minutes: ${HAMSTER_TIMELIMIT_MINUTES}"
-echo "* Job Name: ${HAMSTER_JOB_NAME}"
-echo "* Job ID: ${HAMSTER_JOB_ID}"
-echo "*"
-echo "*******************************************************"
+Hamster_echo "*******************************************************"
+Hamster_echo "* Hamster General Job Info"
+Hamster_echo "*"
+Hamster_echo "* Job Nodelist: ${HAMSTER_NODELIST}"
+Hamster_echo "* Job Nodecount: ${HAMSTER_NODE_COUNT}"
+Hamster_echo "* Job Timelimit in Minutes: ${HAMSTER_TIMELIMIT_MINUTES}"
+Hamster_echo "* Job Name: ${HAMSTER_JOB_NAME}"
+Hamster_echo "* Job ID: ${HAMSTER_JOB_ID}"
+Hamster_echo "*"
+Hamster_echo "*******************************************************"
 
 if [ "${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT_SHELL}X" != "X" ]
 then
@@ -67,22 +67,21 @@ then
     chmod 700 ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
     Hamster_print HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT
 
-    echo "#!${HAMSTER_SHELL}" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
-    echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    Hamster_echo "#!${HAMSTER_SHELL}" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    Hamster_echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
     Hamster_print HAMSTER_SHELL
 
-    echo "# Common environment variables for Job = ${HAMSTER_JOB_NAME}, Job ID = ${HAMSTER_JOB_ID}" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
-
-    echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    Hamster_echo "# Common environment variables for Job = ${HAMSTER_JOB_NAME}, Job ID = ${HAMSTER_JOB_ID}" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+    Hamster_echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
     if [ "${JAVA_HOME}X" != "X" ]
     then
         if echo $HAMSTER_SHELL | grep -q csh
         then
-            echo "setenv JAVA_HOME \"${JAVA_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+            Hamster_echo "setenv JAVA_HOME \"${JAVA_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
         else
-            echo "export JAVA_HOME=\"${JAVA_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+            Hamster_echo "export JAVA_HOME=\"${JAVA_HOME}\"" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
         fi
-        echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
+        Hamster_echo "" >> ${HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT}
     fi
 fi
 
@@ -101,17 +100,17 @@ if [ "${hamster_run_hadoop_setup_successful}" == "1" ]
 then
     if [ "${HAMSTER_JOB_TYPE}" == "script" ]
     then
-        echo "*******************************************************"
-        echo "* Executing script $HAMSTER_SCRIPT_PATH $HAMSTER_SCRIPT_ARGS"
-        echo "*******************************************************"
+        Hamster_echo "*******************************************************"
+        Hamster_echo "* Executing script $HAMSTER_SCRIPT_PATH $HAMSTER_SCRIPT_ARGS"
+        Hamster_echo "*******************************************************"
         ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute script ${HAMSTER_SCRIPT_PATH} ${HAMSTER_SCRIPT_ARGS} &
         scriptpid=$!
         Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}
     elif [ "${HAMSTER_JOB_TYPE}" == "interactive" ]
     then
-        echo "*******************************************************"
-        echo "* Entering Hamster ${HAMSTER_JOB_TYPE} mode"
-        echo "*******************************************************"
+        Hamster_echo "*******************************************************"
+        Hamster_echo "* Entering Hamster ${HAMSTER_JOB_TYPE} mode"
+        Hamster_echo "*******************************************************"
         ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute interactive &
         scriptpid=$!
         wait $scriptpid
@@ -120,9 +119,9 @@ then
         Hamster_run_hadoop
     elif [ "${HAMSTER_JOB_TYPE}" == "testall" ]
     then
-        echo "*******************************************************"
-        echo "* Running Hamster TestAll"
-        echo "*******************************************************"
+        Hamster_echo "*******************************************************"
+        Hamster_echo "* Running Hamster TestAll"
+        Hamster_echo "*******************************************************"
         ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-execute script ${HAMSTER_SCRIPTS_HOME}/lib/job/hamster-job-hamster-testall &
         scriptpid=$!
         Hamster_wait_script_sigusr2_on_job_timeout ${scriptpid}

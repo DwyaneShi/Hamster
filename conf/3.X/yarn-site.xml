@@ -168,4 +168,16 @@
   <value>YARNDEFAULTUSER</value>
 </property>
 
+<property>
+  <name>yarn.app.mapreduce.am.env</name>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME</value>
+  <decription>https://issues.apache.org/jira/browse/MAPREDUCE-6704</decription>
+</property>
+
+<property>
+  <name>yarn.nodemanager.env-whitelist</name>
+  <value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+  <decription>https://issues.apache.org/jira/browse/MAPREDUCE-6704</decription>
+</property>
+
 </configuration>

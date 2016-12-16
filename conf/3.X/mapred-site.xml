@@ -84,6 +84,22 @@
 </property>
 
 <property>
+  <name>mapreduce.admin.user.env</name>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME</value>
+  <description>
+  https://issues.apache.org/jira/browse/MAPREDUCE-6704
+  </description>
+</property>
+
+<property>
+  <name> mapred.child.env</name>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME</value>
+  <description>
+  https://issues.apache.org/jira/browse/MAPREDUCE-6704
+  </description>
+</property>
+
+<property>
   <name>mapreduce.map.memory.mb</name>
   <value>MAPCONTAINERMB</value>
 </property>
@@ -285,14 +301,6 @@
   <value>SUBMITFILEREPLICATION</value>
   <description>The replication level for submitted job files.  This
   should be around the square root of the number of nodes.
-  </description>
-</property>
-
-<property>
-  <name>mapreduce.job.shuffle.provider.services</name>
-  <value>SHUFFLEPROVIDERSERVICES</value>
-  <description>A comma-separated list of classes that should be loaded as additional ShuffleProviderPlugin(s).
-    A ShuffleProviderPlugin can serve shuffle requests from reducetasks.
   </description>
 </property>
 
