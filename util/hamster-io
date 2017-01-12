@@ -18,5 +18,26 @@
 
 Hamster_print () {
     local val=$1
-    echo "${val} is set to ${!val}"
+    local str=$2
+    if [ "${str}X" != "X" ]
+    then
+        echo "$(hostname)> ${str}: ${!val}"
+    else
+        echo "$(hostname)> ${val}: ${!val}"
+    fi
+}
+
+Hamster_echo () {
+    echo "$(hostname)> $1"
+}
+
+Hamster_mkdir () {
+    mkdir -p $1
+    if [ $? -ne 0 ]
+    then
+        Hamster_echo "Failed making $1"
+        exit 1
+    else
+        Hamster_echo "Making $1"
+    fi
 }

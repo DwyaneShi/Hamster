@@ -1,0 +1,64 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+examples="share/hadoop/hdfs/hadoop-hdfs-3.0.0-alpha1-tests.jar"
+
+sizes=( 1024 5120 10240 20480 40960 )
+clients=( 1 5 10 15 20 )
+types=( "rep" "ec" )
+
+for client in "${clients[@]}"
+do
+
+for size in "${sizes[@]}"
+do
+
+if [ "$[${size} * ${client}]" -le "102400" ]
+then
+
+for tpe in "${types[@]}"
+do
+
+Hamster_echo "*******************************************************"
+Hamster_echo "* ECBenchThroughput ${size}MB ${client} Clients ${tpe}"
+Hamster_echo "*******************************************************"
+
+command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput gen ${size} ${tpe} ${client}"
+echo "Running $command" >&2
+$command
+command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput read ${size} ${tpe} ${client} stf"
+echo "Running $command" >&2
+$command
+command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput read ${size} ${tpe} ${client} pos"
+echo "Running $command" >&2
+$command
+command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput clean ${size} ${tpe} ${client}"
+echo "Running $command" >&2
+$command
+
+done
+fi
+done
+done
+
+exit 0

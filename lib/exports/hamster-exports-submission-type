@@ -36,11 +36,11 @@ __Hamster_handle_job_name_corner_cases () {
     # Handle special corner cases where user's job name may not
     # play nice, as we use it in file paths and what not
     if [[ $HAMSTER_JOB_NAME =~ "\$" ]]; then
-        echo "Job name contains dollar sign, internally replacing with underscore" 
+        Hamster_echo "Job name contains dollar sign, internally replacing with underscore" 
         export HAMSTER_JOB_NAME=${HAMSTER_JOB_NAME//\$/_}
     fi
     if [[ $HAMSTER_JOB_NAME =~ [[:space:]] ]]; then
-        echo "Job name contains whitespace, internally replacing with underscore" 
+        Hamster_echo "Job name contains whitespace, internally replacing with underscore" 
         export HAMSTER_JOB_NAME=${HAMSTER_JOB_NAME//[[:space:]]/_}
     fi
 }

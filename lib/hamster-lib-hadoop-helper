@@ -19,6 +19,7 @@
 # This file has common hadoop checks, does not assume anything setup yet
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-config
 
 Hamster_hdfs_federation_enabled () {
     if [ "${HDFS_FEDERATION_NAMENODE_COUNT}X" != "X" ] \
@@ -73,4 +74,79 @@ Hamster_get_hdfs_stored_version_path () {
 Hamster_get_hdfs_stored_nodecount_path () {
     Hamster_get_networkedhdfspath
     hamster_hdfs_stored_nodecount_path=${hamster_networkedhdfspath}/hamster.node-count
+}
+
+Hamster_hadoop_version () {
+    echo ${HADOOP_VERSION%%.*}
+}
+
+Hamster_hadoop_type () {
+    echo ${HADOOP_SETUP_TYPE%[0-9]*}
+}
+
+__Hamster_hadoop_is_type () {
+    local type=$1
+    if [ $# -gt 1 ]
+    then
+        local version=$2
+        if [ "$(Hamster_hadoop_version)" == "${version}" ] \
+            && [ "$(Hamster_hadoop_type)" == "${type}" ]
+        then
+            return 0
+        else
+            return 1
+        fi
+    else
+        if [ $(Hamster_hadoop_type) == "${type}" ]
+        then
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
+Hamster_hadoop_is_MR () {
+    if [ $# -gt 0 ]
+    then
+        __Hamster_hadoop_is_type MR $1
+    else
+        __Hamster_hadoop_is_type MR
+    fi
+}
+
+Hamster_hadoop_is_HDFS () {
+    if [ $# -gt 0 ]
+    then
+        __Hamster_hadoop_is_type HDFS $1
+    else
+        __Hamster_hadoop_is_type HDFS
+    fi
+}
+
+Hamster_hadoop_slave_or_worker_file () {
+    if [ "$(Hamster_hadoop_version)" == "3" ]
+    then
+        echo "workers"
+    else
+        echo "slaves"
+    fi
+}
+
+Hamster_hadoop_setup_type_is_valid () {
+    Hamster_array_contains hamster_hadoop_valid_setup_type $1
+}
+
+Hamster_hadoop_killall_if_is_set () {
+    filename=${HADOOP_CONF_DIR}/killed_DNs
+    if [ -f "${filename}" ]
+    then
+        while read node
+        do
+            Hamster_echo "Killing DN: ${node}"
+            command="ssh ${node} ${JAVA_HOME}/bin/jps -lv | grep -v 'sun.tools.jps.Jps' | awk '{print \$1}' | xargs -I{} kill -9 {}"
+            echo "Running $command" >&2
+            $command
+        done < ${filename}
+    fi
 }

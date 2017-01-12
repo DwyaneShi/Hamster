@@ -21,6 +21,7 @@
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-run
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 # Will set hamster_jobtimeseconds
 Hamster_job_time_seconds
@@ -51,7 +52,7 @@ else
         sleepseconds=`expr ${secondsleft} - 3600`
         sleep ${sleepseconds}
 
-        echo "*** Warning - 60 minutes left"
+        Hamster_echo "*** Warning - 60 minutes left"
         secondsleft=3600
     fi
 
@@ -61,7 +62,7 @@ else
         sleepseconds=`expr ${secondsleft} - 1800`
         sleep ${sleepseconds}
 
-        echo "*** Warning - 30 minutes left"
+        Hamster_echo "*** Warning - 30 minutes left"
         secondsleft=1800
     fi
 
@@ -71,7 +72,7 @@ else
         sleepseconds=`expr ${secondsleft} - 300`
         sleep ${sleepseconds}
 
-        echo "*** Warning - 5 minutes left"
+        Hamster_echo "*** Warning - 5 minutes left"
         secondsleft=300
     fi
 
@@ -81,7 +82,7 @@ else
         sleepseconds=`expr ${secondsleft} - 60`
         sleep ${sleepseconds}
 
-        echo "*** Warning - 1 minute left"
+        Hamster_echo "*** Warning - 1 minute left"
         secondsleft=60
     fi
 

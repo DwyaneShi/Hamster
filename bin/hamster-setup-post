@@ -23,12 +23,13 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-setup
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 if Hamster_am_I_master
 then
-    echo "*******************************************************"
-    echo "* Performing Post Setup"
-    echo "*******************************************************"
+    Hamster_echo "*******************************************************"
+    Hamster_echo "* Performing Post Setup"
+    Hamster_echo "*******************************************************"
 fi
 
 if [ "${HADOOP_SETUP}" == "yes" ]
@@ -50,9 +51,9 @@ then
             then
                 if Hamster_am_I_a_hadoop_namenode
                 then
-                    echo "*******************************************************"
-                    echo "* Formatting HDFS Namenode on Namenode ${HAMSTER_CLUSTER_NODERANK}"
-                    echo "*******************************************************"
+                    Hamster_echo "*******************************************************"
+                    Hamster_echo "* Formatting HDFS Namenode on Namenode ${HAMSTER_CLUSTER_NODERANK}"
+                    Hamster_echo "*******************************************************"
                     cd $HADOOP_HOME
                     echo 'Y' | ${hadoopcmdprefix}/hdfs namenode -format -clusterId "Hamster${HADOOP_FILESYSTEM_MODE}"
                     touch ${hamster_hdfs_format_file}
@@ -65,9 +66,9 @@ then
                 # Only master will format the node
                 if Hamster_am_I_master
                 then
-                    echo "*******************************************************"
-                    echo "* Formatting HDFS Namenode"
-                    echo "*******************************************************"
+                    Hamster_echo "*******************************************************"
+                    Hamster_echo "* Formatting HDFS Namenode"
+                    Hamster_echo "*******************************************************"
                     cd $HADOOP_HOME
                     # Don't check version, legacy 0.2X versioning could be used
                     if [ -x "${hadoopcmdprefix}/hdfs" ]
@@ -89,9 +90,9 @@ fi
 
 if Hamster_am_I_master
 then
-    echo "*******************************************************"
-    echo "* Post Setup Complete"
-    echo "*******************************************************"
+    Hamster_echo "*******************************************************"
+    Hamster_echo "* Post Setup Complete"
+    Hamster_echo "*******************************************************"
 fi
 
 exit 0

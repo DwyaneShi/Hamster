@@ -122,8 +122,7 @@ Hamster_calculate_stop_timeouts () {
 
     if [ "${HADOOP_SETUP}" == "yes" ]
     then
-        if [ ${HADOOP_SETUP_TYPE}  == "MR1" ] \
-            || [ ${HADOOP_SETUP_TYPE}  == "MR2" ]
+        if [ "$(Hamster_hadoop_type)" == "MR" ]
         then
             # Need to split timeout time between namenode, datanodes,
             # secondary namenode, jobtracker/resource manager,
@@ -157,7 +156,8 @@ Hamster_calculate_stop_timeouts () {
 __Hamster_calculate_canrunjobscount () {
     __canrunjobscount=0
 
-    if [ "${HADOOP_SETUP}" == "yes" ] && ( [ "${HADOOP_SETUP_TYPE}" == "MR1" ] || [ "${HADOOP_SETUP_TYPE}" == "MR2" ] )
+    if [ "${HADOOP_SETUP}" == "yes" ] \
+        && [ "$(Hamster_hadoop_type)" == "MR" ]
     then
         __canrunjobscount=`expr ${__canrunjobscount} + 1`
     fi
@@ -225,6 +225,7 @@ Hamster_find_conffile () {
     local conffiledir=$2
     local conffiledesired=$3
     local __returnvar=$4
+    local version=$(Hamster_hadoop_version)
     local conffilefound=""
 
     Hamster_print conffiledir
@@ -233,13 +234,13 @@ Hamster_find_conffile () {
     then
         if [ -f "${conffiledir}/${conffiledesired}" ]
         then
-            conffilefound="${conffiledir}/${conffiledesired}"
+            conffilefound="${conffiledir}/${version}.X/${conffiledesired}"
         fi
     fi
 
     if [ "${conffilefound}X" == "X" ]
     then
-        conffilefound="${hamsterconffiledir}/${conffiledesired}"
+        conffilefound="${hamsterconffiledir}/${version}.X/${conffiledesired}"
     fi
     Hamster_print conffilefound
 

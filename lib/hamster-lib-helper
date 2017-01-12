@@ -23,27 +23,27 @@ Hamster_walltime_to_minutes () {
     local numcolons=`echo ${walltime} | awk -F: '{print NF-1}'`
     if [[ $walltime == *"-"* ]]
     then
-	if [ "${numcolons}" == "2" ]
-    	then
+    if [ "${numcolons}" == "2" ]
+        then
             hamster_walltimetominutes=`echo ${walltime} | awk -F'-|:' '{print $1 * 24 * 60 + $2 * 60 + $3 + $4 / 60}' | xargs printf "%1.0f"`
         elif [ "${numcolons}" == "1" ]
-    	then
-    	    hamster_walltimetominutes=`echo ${walltime} | awk -F'-|:' '{print $1 * 24 * 60 + $2 * 60 + $3}' | xargs printf "%1.0f"`
-    	elif [ "${numcolons}" == "0" ]
-    	then
+        then
+            hamster_walltimetominutes=`echo ${walltime} | awk -F'-|:' '{print $1 * 24 * 60 + $2 * 60 + $3}' | xargs printf "%1.0f"`
+        elif [ "${numcolons}" == "0" ]
+        then
             hamster_walltimetominutes=`echo ${walltime} | awk -F'-' '{print $1 * 24 * 60 + $2 * 60}' | xargs printf "%1.0f"`
-    	fi
+        fi
     else
-	if [ "${numcolons}" == "2" ]
-    	then
+    if [ "${numcolons}" == "2" ]
+        then
             hamster_walltimetominutes=`echo ${walltime} | awk -F':' '{print $1 * 60 + $2 + $3 / 60}' | xargs printf "%1.0f"`
-    	elif [ "${numcolons}" == "1" ]
-    	then
+        elif [ "${numcolons}" == "1" ]
+        then
             hamster_walltimetominutes=`echo ${walltime} | awk -F':' '{print $1 + $2 / 60}' | xargs printf "%1.0f"`
         elif [ "${numcolons}" == "0" ]
-    	then
-    	    hamster_walltimetominutes=`echo ${walltime} | xargs printf "%1.0f"`	
-    	fi
+        then
+            hamster_walltimetominutes=`echo ${walltime} | xargs printf "%1.0f"`    
+        fi
     fi
 }
 
@@ -78,4 +78,17 @@ Hamster_vercomp () {
         fi
     done
     return 0
+}
+
+Hamster_array_contains () {
+    local array="$1[@]"
+    local seeking=$2
+    local in=1
+    for element in "${!array}"; do
+        if [[ $element == $seeking  ]]; then
+            in=0
+            break
+        fi
+    done
+    return $in
 }

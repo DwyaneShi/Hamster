@@ -22,7 +22,7 @@
 
 if [ "${HADOOP_SETUP}" == "yes" ] \
    && [ "${HADOOP_MODE}" != "setuponly" ] \
-   && ([ "${HADOOP_SETUP_TYPE}" == "MR1" ] || [ "${HADOOP_SETUP_TYPE}" == "MR2" ])
+   && [ "${HADOOP_SETUP_TYPE}" == "MR" ]
 then
     echo "*******************************************************"
     echo "* Running Hadoop Terasort"
