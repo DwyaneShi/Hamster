@@ -40,10 +40,6 @@ JAVA_HOME=/usr/java/jdk1.7.0/
 # to fix.
 HOSTNAME_SUFFIX=".cluster"
 
-# Run with n datanodes killed after setting up
-
-HAMSTER_NUM_OF_KILLED_DNS=
-
 #
 # Misc defaults
 #
@@ -81,7 +77,6 @@ sbatch-srun: clean-sbatch-srun
 define common
 	sed -i -e 's;HAMSTERSCRIPTSDIRPREFIX;$(HAMSTER_SCRIPTS_DIR_PREFIX);g' $(1)
 	sed -i -e 's;HAMSTERHOSTNAMESUFFIX;$(HOSTNAME_SUFFIX);g' $(1)
-	sed -i -e 's;HAMSTERNUMOFKILLEDDNS;$(HAMSTER_NUM_OF_KILLED_DNS);g' $(1)
 	sed -i -e 's;LOCALDIRPREFIX;$(LOCAL_DIR_PREFIX);g' $(1)
 	sed -i -e 's;HOMEDIRPREFIX;$(HOME_DIR_PREFIX);g' $(1)
 	sed -i -e 's;LUSTREDIRPREFIX;$(LUSTRE_DIR_PREFIX);g' $(1)

@@ -117,10 +117,6 @@ then
     slave_file=$(Hamster_hadoop_slave_or_worker_file)
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_masters ${HADOOP_CONF_DIR}/masters
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves ${HADOOP_CONF_DIR}/${slave_file}
-    if [ "${HAMSTER_NUM_OF_KILLED_DNS}X" != "X" ]
-    then
-        head -n${HAMSTER_NUM_OF_KILLED_DNS} ${HADOOP_CONF_DIR}/${slave_file} > ${HADOOP_CONF_DIR}/killed_DNs
-    fi
     if [ -f "${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation" ]
     then
         cp ${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation ${HADOOP_CONF_DIR}/namenode_hdfs_federation

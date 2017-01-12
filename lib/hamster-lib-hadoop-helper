@@ -138,15 +138,22 @@ Hamster_hadoop_setup_type_is_valid () {
 }
 
 Hamster_hadoop_killall_if_is_set () {
-    filename=${HADOOP_CONF_DIR}/killed_DNs
+    local num=$1
+    slave_file=$(Hamster_hadoop_slave_or_worker_file)
+    filename=${HADOOP_CONF_DIR}/${slave_file}
     if [ -f "${filename}" ]
     then
         while read node
         do
+            if [ "${num}" -le "0" ]
+            then
+                break;
+            fi
             Hamster_echo "Killing DN: ${node}"
             command="ssh ${node} ${JAVA_HOME}/bin/jps -lv | grep -v 'sun.tools.jps.Jps' | awk '{print \$1}' | xargs -I{} kill -9 {}"
             echo "Running $command" >&2
             $command
+            num=$[$num - 1]
         done < ${filename}
     fi
 }
