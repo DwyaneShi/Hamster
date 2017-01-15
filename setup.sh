@@ -29,9 +29,6 @@ HOSTNAME_SUFFIX=".cluster"
 HADOOP_VERSION="3.0.0-alpha1"
 HADOOP_PACKAGE="hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz"
 
-# Copy jars in directory share/ to hadoop
-SHARED_FILES=true
-
 # Check some basics
 
 if [ ! -d "${INSTALL_PATH}" ]

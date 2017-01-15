@@ -188,7 +188,7 @@
 
 <property>
   <name>yarn.app.mapreduce.am.command-opts</name>
-  <value>-Xmx10240mEXTRAHADOOPOPTS</value>
+  <value>-Xmx1024mEXTRAHADOOPOPTS</value>
   <description>Java opts for the MR App Master processes.
   The following symbol, if present, will be interpolated: @taskid@ is replaced
   by current TaskID. Any other occurrences of '@' will go unchanged.

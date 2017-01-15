@@ -167,13 +167,13 @@ if [ "${HADOOP_CHILD_HEAPSIZE}X" != "X" ]
 then
     allchildheapsize=${HADOOP_CHILD_HEAPSIZE}
 else
-# achu: We round down to nearest 10240M
+# achu: We round down to nearest 1024M
     tmp1=`echo "${yarnresourcememory} / ${maxtaskspernode}" | bc -l | xargs printf "%1.2f"`
-    tmp2=`echo "${tmp1} / 10240" | bc -l | xargs printf "%1.0f"`
-    allchildheapsize=`echo "${tmp2} * 10240" | bc -l | xargs printf "%1.0f"`
-    if [ "${allchildheapsize}" -lt "10240" ]
+    tmp2=`echo "${tmp1} / 1024" | bc -l | xargs printf "%1.0f"`
+    allchildheapsize=`echo "${tmp2} * 1024" | bc -l | xargs printf "%1.0f"`
+    if [ "${allchildheapsize}" -lt "1024" ]
     then
-        allchildheapsize=10240
+        allchildheapsize=1024
     fi
 fi
 Hamster_print allchildheapsize "All Child Heap Size(MB)"
