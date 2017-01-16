@@ -86,6 +86,7 @@
 <property>
   <name>mapreduce.admin.user.env</name>
   <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME</value>
+  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
   <description>
   https://issues.apache.org/jira/browse/MAPREDUCE-6704
   </description>
@@ -94,6 +95,7 @@
 <property>
   <name> mapred.child.env</name>
   <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME</value>
+  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
   <description>
   https://issues.apache.org/jira/browse/MAPREDUCE-6704
   </description>
@@ -302,6 +304,22 @@
   <description>The replication level for submitted job files.  This
   should be around the square root of the number of nodes.
   </description>
+</property>
+
+<property>
+  <name>yarn.app.mapreduce.am.env</name>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME</value>
+  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+  <decription>https://issues.apache.org/jira/browse/MAPREDUCE-6704</decription>
+</property>
+
+<property>
+  <name>mapreduce.map.env</name>
+  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+</property>
+<property>
+  <name>mapreduce.reduce.env</name>
+  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
 </property>
 
 </configuration>
