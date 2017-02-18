@@ -42,9 +42,6 @@ export HADOOP_VERSION="HADOOPVERSION"
 #
 export HADOOP_HOME="HADOOPDIRPREFIX/hadoop-${HADOOP_VERSION}"
 
-# Path to collect logs
-export HADDOP_LOG_DIR="HADOOPLOGDIRPATH"
-
 # Path to store data local to each cluster node, typically something
 # in /tmp.  This will store local conf files for your
 # job.  If local scratch space is not available, consider using the

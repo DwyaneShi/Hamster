@@ -23,42 +23,67 @@ source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 examples="share/hadoop/hdfs/hadoop-hdfs-3.0.0-alpha1-tests.jar"
 
-sizes=( 1024 5120 10240 20480 40960 )
-clients=( 1 5 10 15 20 )
-types=( "rep" "ec" )
+blocksizes=( 64 128 256 512 )
+# bench="gen_read"
+bench="write"
 
-for client in "${clients[@]}"
+for blocksize in "${blocksizes[@]}"
 do
 
-for size in "${sizes[@]}"
-do
+    opts="-D dfs.blocksize=${blocksize}m"
+    sizes=( 1 4 8 16 )
+    clients=( 1 4 8 16 )
+    types=( "ec" )
 
-if [ "$[${size} * ${client}]" -le "102400" ]
-then
+    for it in {1..3}
+    do
 
-for tpe in "${types[@]}"
-do
+        for client in "${clients[@]}"
+        do
 
-Hamster_echo "*******************************************************"
-Hamster_echo "* ECBenchThroughput ${size}MB ${client} Clients ${tpe}"
-Hamster_echo "*******************************************************"
+            for size in "${sizes[@]}"
+            do
 
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput gen ${size} ${tpe} ${client}"
-echo "Running $command" >&2
-$command
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput read ${size} ${tpe} ${client} stf"
-echo "Running $command" >&2
-$command
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput read ${size} ${tpe} ${client} pos"
-echo "Running $command" >&2
-$command
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput clean ${size} ${tpe} ${client}"
-echo "Running $command" >&2
-$command
+                for tpe in "${types[@]}"
+                do
 
-done
-fi
-done
+                    mb=$(( ${size} * 1024 ))
+
+                    Hamster_echo "*******************************************************"
+                    Hamster_echo "* ECBenchThroughput"
+                    Hamster_echo "* blocksize: ${blocksize}MB"
+                    Hamster_echo "* # clients: ${client}"
+                    Hamster_echo "* datasize: ${size}GB"
+                    Hamster_echo "* type: ${tpe}"
+                    Hamster_echo "*******************************************************"
+
+                    command="${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash /tmp/benchmark"
+                    echo "Running $command" >&2
+                    $command
+
+                    sleep 5
+
+                    if [ "${bench}X" == "gen_readX" ]
+                    then
+                        command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} gen ${mb} ${tpe} ${client}"
+                        echo "Running $command" >&2
+                        $command
+                        sleep 25
+                        command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} read ${mb} ${tpe} ${client} stf"
+                        echo "Running $command" >&2
+                        $command
+                        command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} read ${mb} ${tpe} ${client} pos"
+                        echo "Running $command" >&2
+                        $command
+                    else
+                        command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} write ${mb} ${tpe} ${client}"
+                        echo "Running $command" >&2
+                        $command
+                    fi
+                done
+            done
+        done
+    done
 done
 
 exit 0

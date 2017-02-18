@@ -1,0 +1,95 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script sets up configuration files for jobs.  For the most
+# part, it shouldn't be edited.  See job submission files for
+# configuration details.
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-setup
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+
+# hadoopnoderank set if succeed
+if ! Hamster_am_I_a_hadoop_node
+then
+    Hamster_echo "I am not a Hadoop node"
+    exit 0
+fi
+
+#
+# Get config files for setup
+#
+
+# Hamster_find_conffile will set the 'pre' filenames
+
+Hamster_find_conffile "Hive" ${HIVE_CONF_FILES:-""} "hive-env.sh" "pre_hiveenvsh"
+Hamster_find_conffile "Hive" ${HIVE_CONF_FILES:-""} "hive-site.xml" "pre_hivesitexml"
+Hamster_find_conffile "Hive" ${HIVE_CONF_FILES:-""} "hive-log4j2.properties" "pre_hivelog4jproperties"
+Hamster_find_conffile "Hive" ${HIVE_CONF_FILES:-""} "hive-metastore.sh" "pre_hivemetastore"
+Hamster_find_conffile "Hive" ${HIVE_CONF_FILES:-""} "hive-metastore.sql" "pre_hivemetastoresql"
+Hamster_find_conffile "Zookeeper" ${ZOOKEEPER_CONF_FILES:-""} "zoo.cfg" "pre_zoocfg"
+Hamster_find_conffile "Zookeeper" ${ZOOKEEPER_CONF_FILES:-""} "zookeeper-env.sh" "pre_zkenv"
+
+post_hiveenvsh=${HIVE_CONF_DIR}/hive-env.sh
+post_hivesitexml=${HIVE_CONF_DIR}/hive-site.xml
+post_hivelog4jproperties=${HIVE_CONF_DIR}/hive-log4j2.properties
+post_hivemetastore=${HIVE_CONF_DIR}/hive-metastore.sh
+post_hivemetastoresql=${HIVE_CONF_DIR}/hive-metastore.sql
+post_zoocfg=${ZOOKEEPER_CONF_DIR}/zoo.cfg
+post_zkenv=${ZOOKEEPER_CONF_DIR}/zookeeper-env.sh
+
+#
+# Setup Hive configuration files and environment files
+#
+
+cp ${pre_hiveenvsh} ${post_hiveenvsh}
+cp ${pre_hivesitexml} ${post_hivesitexml}
+cp ${pre_hivelog4jproperties} ${post_hivelog4jproperties}
+cp ${pre_hivemetastore} ${post_hivemetastore}
+cp ${pre_hivemetastoresql} ${post_hivemetastoresql}
+cp ${pre_zoocfg} ${post_zoocfg}
+cp ${pre_zkenv} ${post_zkenv}
+
+sed -i \
+    -e "s/HADOOP_MASTER_HOST/${HADOOP_MASTER_NODE}/g" \
+    ${post_hivesitexml}
+
+sed -i \
+    -e "s/ZOOKEEPER_PORT/${ZOOKEEPER_PORT}/g" \
+    ${post_hivesitexml}
+
+zkdatadirsubst=`echo ${ZOOKEEPER_DATADIR} | sed "s/\\//\\\\\\\\\//g"`
+
+sed -i \
+    -e "s/ZKDATADIR/${zkdatadirsubst}/g" \
+    -e "s/ZKPORT/${ZOOKEEPER_PORT}/g" \
+    ${post_zoocfg}
+
+zklogdirsubst=`echo ${ZOOKEEPER_LOG_DIR} | sed "s/\\//\\\\\\\\\//g"`
+
+sed -i \
+    -e "s/ZOOKEEPER_LOG_DIR/${zklogdirsubst}/g" \
+    ${post_zkenv}
+
+exit 0

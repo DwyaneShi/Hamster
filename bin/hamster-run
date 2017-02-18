@@ -28,6 +28,7 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-run
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 source ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-project-hadoop
+source ${HAMSTER_SCRIPTS_HOME}/lib/run/hamster-run-project-hive
 
 if ! Hamster_am_I_master
 then
@@ -93,6 +94,7 @@ hamster_run_total_sleep_wait=0
 
 # Will set hamster_run_hadoop_should_be_torndown & hamster_run_hadoop_setup_successful appropriately
 Hamster_run_start_hadoop
+Hamster_run_start_hive
 
 
 # Make sure all setup passed
@@ -129,6 +131,7 @@ then
 fi
 
 # Sets hamster_run_hadoop_teardown_complete if teardown done
+Hamster_run_stop_hive
 Hamster_run_stop_hadoop
 
 exit 0

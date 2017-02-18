@@ -21,16 +21,20 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
-export LD_LIBRARY_PATH=/home/shi.876/lib
-
 examples="share/hadoop/common/hadoop-common-3.0.0-alpha1-tests.jar"
 
-sizes=( 1024 5120 10240 20480 )
-clients=( 1 5 10 15 20 )
-index=( 0 1 2 3 4 5 )
+sizes=( 1 4 8 16 )
+clients=( 1 4 8 16 )
+# index=( 0 1 2 3 4 )
+index=( 1 ) 
+
+for itt in {1..5}
+do
 
 for size in "${sizes[@]}"
 do
+
+size=`expr ${size} \* 1024`
 
 Hamster_echo "*******************************************************"
 Hamster_echo "* ECBench Encode ${size}MB"
@@ -60,6 +64,7 @@ $command
 done
 done
 
+done
 done
 
 exit 0

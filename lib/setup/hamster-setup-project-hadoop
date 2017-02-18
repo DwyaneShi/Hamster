@@ -53,6 +53,11 @@ extrahadoopopts=""
 extrayarnopts=""
 extrahadooptaskopts=""
 
+if [ -f ${HAMSTER_SCRIPTS_HOME}/benchmarks/extra_cp.sh ]
+then
+    extrahadoopclasses=${extrahadoopclasses}:$(${HAMSTER_SCRIPTS_HOME}/benchmarks/extra_cp.sh)
+fi
+
 slave_file=$(Hamster_hadoop_slave_or_worker_file)
 cp ${HADOOP_CONF_DIR}/${slave_file} ${HADOOP_CONF_DIR}/hosts-include
 hostsincludefile="${HADOOP_CONF_DIR}/hosts-include"
@@ -1054,7 +1059,7 @@ then
         sed -i -e "/@NAMENODEINFO@/,+1d" ${post_hdfssitexml}
     fi
 
-    HADOOP_THIS_HOST=`hostname`
+    HADOOP_THIS_HOST=$(Hamster_hostname)
 
     sed -i \
         -e "s/HADOOP_MASTER_HOST/${HADOOP_MASTER_NODE}/g" \

@@ -225,8 +225,9 @@ Hamster_find_conffile () {
     local conffiledir=$2
     local conffiledesired=$3
     local __returnvar=$4
-    local version=$(Hamster_hadoop_version)
+    local version=$(Hamster_project_version ${project})
     local conffilefound=""
+    local _project=$(Hamster_to_lowercase ${project})
 
     Hamster_print conffiledir
     Hamster_print conffiledesired
@@ -234,13 +235,13 @@ Hamster_find_conffile () {
     then
         if [ -f "${conffiledir}/${conffiledesired}" ]
         then
-            conffilefound="${conffiledir}/${version}.X/${conffiledesired}"
+            conffilefound="${conffiledir}/${_project}/${version}.X/${conffiledesired}"
         fi
     fi
 
     if [ "${conffilefound}X" == "X" ]
     then
-        conffilefound="${hamsterconffiledir}/${version}.X/${conffiledesired}"
+        conffilefound="${hamsterconffiledir}/${_project}/${version}.X/${conffiledesired}"
     fi
     Hamster_print conffilefound
 

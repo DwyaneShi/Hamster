@@ -31,6 +31,9 @@ NETWORKFS_DIR_PREFIX=/networkfs/$${USER}
 RAWNETWORKFS_DIR_PREFIX=/lustre/$${USER}
 LOCAL_DRIVE_PREFIX=/ssd/$${USER}
 
+HAMSTER_PROJECTS="HADOOP"
+HAMSTER_SETUP="HADOOP"
+
 HADOOP_DIR_PREFIX=$${HOME}
 
 JAVA_HOME=/usr/java/jdk1.7.0/
@@ -49,7 +52,12 @@ HADOOP_DEFAULT_TERASORT_SIZE=50000000
 
 HADOOP_SETUP_TYPE=MR
 HADOOP_VERSION=2.7.3
-HADOOP_DAEMON_HEAP_MAX=10240
+HADOOP_DAEMON_HEAP_MAX=102400
+
+HIVE_VERSION=2.1.1
+ZOOKEEPER_VERSION=3.4.9
+ZOOKEEPER_DATADIR=/tmp/datadir
+ZOOKEEPER_PORT=2231
 
 #
 # If LOCAL_REQUIREMENTS is set to 'y', whatever is in the file pointed
@@ -87,7 +95,12 @@ define common
 	sed -i -e 's;HADOOPSETUPTYPE;$(HADOOP_SETUP_TYPE);g' $(1)
 	sed -i -e 's;HADOOPDAEMONHEAPMAX;$(HADOOP_DAEMON_HEAP_MAX);g' $(1)
 	sed -i -e 's;HADOOPVERSION;$(HADOOP_VERSION);g' $(1)
+	sed -i -e 's;HIVEVERSION;$(HIVE_VERSION);g' $(1)
+	sed -i -e 's;ZOOKEEPERVERSION;$(ZOOKEEPER_VERSION);g' $(1)
+	sed -i -e 's;ZOOKEEPERDATADIR;$(ZOOKEEPER_DATADIR);g' $(1)
+	sed -i -e 's;ZOOKEEPERPORT;$(ZOOKEEPER_PORT);g' $(1)
 	sed -i -e 's;JAVAHOME;$(JAVA_HOME);g' $(1)
+	sed -i -e 's;HAMSTERPROJECTS;$(HAMSTER_PROJECTS);g' $(1)
     sed -i -e 's;HADOOPFILESYSTEMMODE;$(HADOOP_FILESYSTEM_MODE);g' $(1)
 	sed -i -e 's;HADOOPDEFAULTTERASORTSIZE;$(HADOOP_DEFAULT_TERASORT_SIZE);g' $(1)
 	if test "${HADOOP_DEFAULT_TERASORT_SIZE}" != "50000000"; then \
@@ -164,6 +177,7 @@ define create-all
 		hamster-customizations \
 		../templates/hamster-general-configuration \
 		../templates/hamster-hadoop-core \
+		../templates/hamster-hive-core \
 		../templates/hamster-hadoop-job \
 		../templates/hamster-hadoop-job-details \
 		hamster-hadoop-filesystem \
@@ -174,5 +188,8 @@ define create-all
 	$(call common, ${HAMSTER})
 	$(call common-additions, ${HAMSTER})
 	sed -i -e "s/HAMSTER_JOB_TYPE=\"\(.*\)\"/HAMSTER_JOB_TYPE=\"hadoop\"/" $(HAMSTER)
-	sed -i -e "s/HADOOP_SETUP=.*/HADOOP_SETUP=yes/" $(HAMSTER)
+	for project in "${HAMSTER_SETUP}"; \
+	do \
+		sed -i -e "s/${project}_SETUP=.*/${project}_SETUP=yes/" $(HAMSTER); \
+	done
 endef

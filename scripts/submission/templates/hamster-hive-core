@@ -1,0 +1,13 @@
+############################################################################
+# HIVE CORE
+############################################################################
+
+export HIVE_VERSION="HIVEVERSION"
+export ZOOKEEPER_VERSION="ZOOKEEPERVERSION"
+export ZOOKEEPER_DATADIR="ZOOKEEPERDATADIR"
+export ZOOKEEPER_PORT="ZOOKEEPERPORT"
+export HIVE_SETUP=n
+export ZOOKEEPER_SETUP=n
+export HIVE_HOME="HADOOPDIRPREFIX/apache-hive-${HIVE_VERSION}-bin"
+export ZOOKEEPER_HOME="HADOOPDIRPREFIX/zookeeper-${ZOOKEEPER_VERSION}"
+export ZOOBINDIR="${ZOOKEEPER_HOME}/bin"

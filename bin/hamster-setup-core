@@ -40,7 +40,7 @@ Hamster_mkdir $HAMSTER_LOCAL_SCRATCHSPACE_DIR
 # Setup primary conf, log, and local scratchspace directories for projects
 #
 
-hamsterprojects="HADOOP"
+hamsterprojects="HADOOP HIVE ZOOKEEPER"
 
 for project in ${hamsterprojects}
 do
@@ -50,27 +50,24 @@ do
     piddirvar="${project}_PID_DIR"
     localscratchspacedirvar="${project}_LOCAL_SCRATCHSPACE_DIR"
 
-    if [ "${!setupvar}" == "yes" ]
+    if [ "${!confdirvar}X" != "X" ]
     then
-        if [ "${!confdirvar}X" != "X" ]
-        then
-            Hamster_mkdir ${!confdirvar}
-        fi
+        Hamster_mkdir ${!confdirvar}
+    fi
 
-        if [ "${!logdirvar}X" != "X" ]
-        then
-            Hamster_mkdir ${!logdirvar}
-        fi
+    if [ "${!logdirvar}X" != "X" ]
+    then
+        Hamster_mkdir ${!logdirvar}
+    fi
 
-        if [ "${!piddirvar}X" != "X" ]
-        then
-            Hamster_mkdir ${!piddirvar}
-        fi
+    if [ "${!piddirvar}X" != "X" ]
+    then
+        Hamster_mkdir ${!piddirvar}
+    fi
 
-        if [ "${!localscratchspacedirvar}X" != "X" ]
-        then
-            Hamster_mkdir ${!localscratchspacedirvar}
-        fi
+    if [ "${!localscratchspacedirvar}X" != "X" ]
+    then
+        Hamster_mkdir ${!localscratchspacedirvar}
     fi
 done
 

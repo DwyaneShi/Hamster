@@ -107,7 +107,7 @@ if [ "${jobtype}" != "scriptnokill" ]
 then
 # Some systems have SIGUSR1 as USR1 so we hardcode the value of 10
 
-    myhostname=`hostname`
+    myhostname=$(Hamster_hostname)
     Hamster_echo "*******************************************************"
     Hamster_echo "* Run"
     Hamster_echo "*"

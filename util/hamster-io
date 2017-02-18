@@ -16,19 +16,24 @@
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
+Hamster_hostname () {
+    myhostname=$(hostname -s)${HAMSTER_HOSTNAME_SUFFIX}
+    echo ${myhostname}
+}
+
 Hamster_print () {
     local val=$1
     local str=$2
     if [ "${str}X" != "X" ]
     then
-        echo "$(hostname)> ${str}: ${!val}"
+        echo "$(Hamster_hostname)> ${str}: ${!val}"
     else
-        echo "$(hostname)> ${val}: ${!val}"
+        echo "$(Hamster_hostname)> ${val}: ${!val}"
     fi
 }
 
 Hamster_echo () {
-    echo "$(hostname)> $1"
+    echo "$(Hamster_hostname)> $1" >&2
 }
 
 Hamster_mkdir () {
@@ -40,4 +45,10 @@ Hamster_mkdir () {
     else
         Hamster_echo "Making $1"
     fi
+}
+
+Hamster_command () {
+    local command=$1
+    Hamster_echo "${command}"
+    time $command
 }

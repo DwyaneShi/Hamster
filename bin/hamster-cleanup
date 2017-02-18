@@ -23,10 +23,9 @@
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
-myhostname=`hostname`
+myhostname=$(Hamster_hostname)
             
-if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ] \
-    && [ "${HADOOP_HDFS_PATH_CLEAR}" == "yes" ]
+if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ]
 then
     if Hamster_am_I_a_hadoop_node
     then
@@ -36,7 +35,7 @@ then
         do
             if [ -d "${hdfspath}" ]
             then
-                Hamster_echo "${myhostname}: Clearing directory ${hdfspath}"
+                Hamster_echo "Clearing directory ${hdfspath}"
                 rm -rf ${hdfspath}
             fi
         done
@@ -44,8 +43,7 @@ then
     fi
 fi
 
-if [ "${HADOOP_LOCALSTORE}X" != "X" ] \
-    && [ "${HADOOP_LOCALSTORE_CLEAR}" == "yes" ]
+if [ "${HADOOP_LOCALSTORE}X" != "X" ]
 then
     if Hamster_am_I_a_hadoop_node
     then
@@ -55,7 +53,7 @@ then
         do
             if [ -d "${localstorepath}" ]
             then
-                Hamster_echo "${myhostname}: Clearing directory ${localstorepath}"
+                Hamster_echo "Clearing directory ${localstorepath}"
                 rm -rf ${localstorepath}
             fi
         done

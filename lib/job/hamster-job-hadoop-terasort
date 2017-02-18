@@ -16,50 +16,47 @@
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
+# This script is the core terasort running script.  For the most part,
+# it shouldn't be edited.  See job submission files for configuration
+# details.
+
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
-examples="share/hadoop/hdfs/hadoop-hdfs-3.0.0-alpha1-tests.jar"
+export PATH=$PATH:${HADOOP_HOME}/bin:${HIVE_HOME}/bin
 
-sizes=( 1024 5120 10240 20480 40960 )
-# clients=( 1 5 10 15 20 )
-clients=( 10 15 20 )
-types=( "rep" "ec" )
+job="tpch"
+bench_home=${HAMSTER_SCRIPTS_HOME}/benchmarks/hive-testbench
+gen_script=${bench_home}/${job}-setup.sh
+run_script=${bench_home}/runSuite.pl
+size=300
+policy="erasurecode"
 
-for client in "${clients[@]}"
-do
+cd ${bench_home}
 
-for size in "${sizes[@]}"
-do
+# directories used in this shell are made in another shell, so do NOT remove directories
 
-if [ "$[${size} * ${client}]" -le "102400" ]
+if [ "${policy}X" == "erasurecodeX" ]
 then
-
-for tpe in "${types[@]}"
-do
-
-Hamster_echo "*******************************************************"
-Hamster_echo "* ECBenchThroughput ${size}MB ${client} Clients ${tpe}"
-Hamster_echo "*******************************************************"
-
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput gen ${size} ${tpe} ${client}"
-echo "Running $command" >&2
-$command
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput read ${size} ${tpe} ${client} stf"
-echo "Running $command" >&2
-$command
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput read ${size} ${tpe} ${client} pos"
-echo "Running $command" >&2
-$command
-command="${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput clean ${size} ${tpe} ${client}"
-echo "Running $command" >&2
-$command
-
-done
+    Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -setPolicy -p RS-DEFAULT-6-3-64k ${path_prefix}"
+    Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -getPolicy ${path_prefix}"
+    sleep 30
 fi
-done
+
+
+Hamster_echo "*******************************************************"
+Hamster_echo "* Hive TPC ${job} ${size}GB"
+Hamster_echo "*******************************************************"
+
+Hamster_command "${gen_script} ${size}"
+
+for i in {1..3}
+do
+    sleep 30
+
+    Hamster_command "${run_script} ${job} ${size}"
 done
 
 exit 0

@@ -92,3 +92,18 @@ Hamster_array_contains () {
     done
     return $in
 }
+
+Hamster_to_lowercase () {
+    local string=$1
+    echo $1 | tr '[:upper:]' '[:lower:]'
+}
+
+Hamster_to_uppercase () {
+    local string=$1
+    echo $1 | tr '[:lower:]' '[:upper:]'
+}
+
+Hamster_project_version () {
+    local project=$(Hamster_to_uppercase $1)
+    eval "echo \${${project}_VERSION%%.*}"
+}

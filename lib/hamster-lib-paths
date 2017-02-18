@@ -36,3 +36,8 @@ then
         dfsadminscript="hdfs"
     fi
 fi
+if [ "${HIVE_SETUP}" == "yes" ]
+then
+    hivesetupscriptprefix="bin"
+    zksetupscriptprefix="bin"
+fi

@@ -21,6 +21,7 @@
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 # Do not ever "use" the LOCAL_JOB_DIR variables.  They should only be
@@ -40,7 +41,7 @@ __Hamster_make_hamster_local_dirs () {
 
     if [ "${which}" == "specific" ]
     then
-        myhostname=`hostname`
+        myhostname=$(Hamster_hostname)
         export HAMSTER_LOCAL_CONF_DIR=`echo $HAMSTER_LOCAL_CONF_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
         export HAMSTER_LOCAL_SCRATCHSPACE_DIR=`echo $HAMSTER_LOCAL_SCRATCHSPACE_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
     fi
@@ -56,16 +57,20 @@ Hamster_make_hamster_local_dirs_node_specific () {
     __Hamster_make_hamster_local_dirs "specific"
 }
 
-__Hamster_make_hadoop_local_dirs () {
+__Hamster_make_project_local_dirs () {
     local which=$1
+    local project=$(Hamster_to_lowercase $2)
+    local _project=$(Hamster_to_uppercase ${project})
 
-    if [ "${HADOOP_SETUP}" == "yes" ]
+    if [ "${PROJECT_LOCAL_JOB_DIR}X" == "X" ]
     then
-        if [ "${HADOOP_LOCAL_JOB_DIR}X" == "X" ]
-        then
-            Hamster_output_internal_error "__Hamster_make_hadoop_local_dirs called without HADOOP_LOCAL_JOB_DIR set"
-            exit 1
-        fi
+        Hamster_output_internal_error "__Hamster_make_project_local_dirs called without PROJECT_LOCAL_JOB_DIR set"
+        exit 1
+    fi
+
+    if [ "${_project}X" == "HADOOPX" ] && [ "${HADOOP_SETUP}" == "yes" ]
+    then
+        HADOOP_LOCAL_JOB_DIR=${PROJECT_LOCAL_JOB_DIR}/hadoop
 
         export HADOOP_CONF_DIR=${HADOOP_LOCAL_JOB_DIR}/conf
         export HADOOP_LOG_DIR=${HADOOP_LOCAL_JOB_DIR}/log
@@ -74,7 +79,7 @@ __Hamster_make_hadoop_local_dirs () {
 
         if [ "${which}" == "specific" ]
         then
-            myhostname=`hostname`
+            myhostname=$(Hamster_hostname)
             export HADOOP_CONF_DIR=`echo $HADOOP_CONF_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
             export HADOOP_LOG_DIR=`echo $HADOOP_LOG_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
             export HADOOP_LOCAL_SCRATCHSPACE_DIR=`echo $HADOOP_LOCAL_SCRATCHSPACE_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
@@ -93,12 +98,12 @@ __Hamster_make_hadoop_local_dirs () {
             Hamster_print YARN_LOCAL_SCRATCHSPACE_DIR
             Hamster_print YARN_PID_DIR
         fi
-
+    
         Hamster_print HADOOP_CONF_DIR
         Hamster_print HADOOP_LOG_DIR
         Hamster_print HADOOP_LOCAL_SCRATCHSPACE_DIR
         Hamster_print HADOOP_PID_DIR
-
+    
         # Hadoop has this completely random other one
         Hamster_vercomp ${HADOOP_VERSION} "3.0.0"
         if [ $? == "2" ]
@@ -107,19 +112,51 @@ __Hamster_make_hadoop_local_dirs () {
             Hamster_print HADOOP_MAPRED_PID_DIR
         fi
     fi
+    if [ "${_project}X" == "HIVEX" ] && [ "${HIVE_SETUP}" == "yes" ]
+    then
+        HIVE_LOCAL_JOB_DIR=${PROJECT_LOCAL_JOB_DIR}/hive
+        ZK_LOCAL_JOB_DIR=${PROJECT_LOCAL_JOB_DIR}/zookeeper
+
+        export HIVE_CONF_DIR=${HIVE_LOCAL_JOB_DIR}/conf
+        export HIVE_LOG_DIR=${HIVE_LOCAL_JOB_DIR}/log
+        export HIVE_PID_DIR=${HIVE_LOCAL_JOB_DIR}/pid
+        export ZOOCFGDIR=${ZK_LOCAL_JOB_DIR}/conf
+        export ZOOKEEPER_CONF_DIR=${ZK_LOCAL_JOB_DIR}/conf
+        export ZOO_LOG_DIR=${ZK_LOCAL_JOB_DIR}/log
+        export ZOOKEEPER_LOG_DIR=${ZK_LOCAL_JOB_DIR}/log
+
+        if [ "${which}" == "specific" ]
+        then
+            myhostname=$(Hamster_hostname)
+            export HIVE_CONF_DIR=`echo $HIVE_CONF_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+            export HIVE_LOG_DIR=`echo $HIVE_LOG_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+            export HIVE_PID_DIR=`echo $HIVE_PID_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+        fi
+
+        Hamster_print HIVE_CONF_DIR
+        Hamster_print HIVE_LOG_DIR
+        Hamster_print HIVE_PID_DIR
+        Hamster_print ZOOCFGDIR
+        Hamster_print ZOOKEEPER_CONF_DIR
+        Hamster_print ZOO_LOG_DIR
+        Hamster_print ZOOKEEPER_LOG_DIR
+    fi
 }
 
 Hamster_make_hadoop_local_dirs_unspecified () {
-    __Hamster_make_hadoop_local_dirs "generic"
+    __Hamster_make_project_local_dirs "generic" "hadoop"
 }
 
 Hamster_make_hadoop_local_dirs_node_specific () {
-    __Hamster_make_hadoop_local_dirs "specific"
+    __Hamster_make_project_local_dirs "specific" "hadoop"
 }
 
 __Hamster_make_all_local_dirs () {
     __Hamster_make_hamster_local_dirs $1
-    __Hamster_make_hadoop_local_dirs $1
+    for project in ${HAMSTER_PROJECTS}
+    do
+        __Hamster_make_project_local_dirs $1 ${project}
+    done
 }
 
 Hamster_make_all_local_dirs_unspecified () {
@@ -145,12 +182,12 @@ if [ "${HADOOP_SETUP}" == "yes" ]
 then
     if [ "${HAMSTER_NO_LOCAL_DIR}" == "yes" ]
     then
-        export HADOOP_LOCAL_JOB_DIR=${HADOOP_LOCAL_DIR}/HAMSTERHOSTNAMESUBSTITUTION/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
+        export PROJECT_LOCAL_JOB_DIR=${HADOOP_LOCAL_DIR}/HAMSTERHOSTNAMESUBSTITUTION/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
     else
-        export HADOOP_LOCAL_JOB_DIR=${HADOOP_LOCAL_DIR}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
+        export PROJECT_LOCAL_JOB_DIR=${HADOOP_LOCAL_DIR}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}
     fi
     # HADOOP_LOCAL_SCRATCHSPACE_DIR & HADOOP_CONF_DIR & HADOOP_LOG_DIR set
     # YARN_LOCAL_SCRATCHSPACE_DIR & YARN_CONF_DIR & YARN_LOG_DIR set
     Hamster_make_hadoop_local_dirs_node_specific
-    Hamster_print HADOOP_LOCAL_JOB_DIR
+    Hamster_print PROEJCT_LOCAL_JOB_DIR
 fi

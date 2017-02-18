@@ -1,0 +1,92 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script is the core terasort running script.  For the most part,
+# it shouldn't be edited.  See job submission files for configuration
+# details.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+if [ "${HADOOP_TERASORT_REDUCER_COUNT:-0}" -ne "0" ]
+then
+    reducetasks=$HADOOP_TERASORT_REDUCER_COUNT
+else
+    reducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
+fi
+
+examples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
+
+sizes=( 1 4 8 16 )
+path_prefix="/benchmarks"
+in_dir="dir_in"
+out_dir="dir_out"
+policy=""
+
+blocksizes=( 64 128 256 512 )
+
+cd ${HADOOP_HOME}
+
+for i in {1..3}
+do
+
+    for size in "${sizes[@]}"
+    do
+
+        for blocksize in "${blocksizes[@]}"
+        do
+
+            opts="-D dfs.blocksize=${blocksize}m"
+
+            Hamster_command "${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${path_prefix}"
+
+            sleep 15
+
+            if [ "${policy}X" == "erasurecodeX" ]
+            then
+                Hamster_command "${hadoopcmdprefix}/hadoop fs -mkdir ${path_prefix}"
+                Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -setPolicy -p RS-DEFAULT-6-3-64k ${path_prefix}"
+                Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -getPolicy ${path_prefix}"
+            fi
+
+            sleep 15
+
+            Hamster_echo "*******************************************************"
+            Hamster_echo "* RandomWrite ${size}GB"
+            Hamster_echo "* blocksize: ${blocksize}MB"
+            Hamster_echo "*******************************************************"
+
+            gb=$(( ${size} * 1024 * 1024 ))
+
+            Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} randomwriter ${opts} -D mapreduce.randomwriter.totalbytes=${gb} -D mapreduce.job.reduces=${reducetasks} ${path_prefix}/${in_dir}"
+            sleep 30
+
+            Hamster_echo "*******************************************************"
+            Hamster_echo "* Sort ${size}GB"
+            Hamster_echo "* blocksize: ${blocksize}MB"
+            Hamster_echo "*******************************************************"
+
+            Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} sort ${opts} ${path_prefix}/${in_dir} ${path_prefix}/${out_dir}"
+        done
+
+    done
+done
+
+exit 0

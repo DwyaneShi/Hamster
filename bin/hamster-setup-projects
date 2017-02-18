@@ -19,13 +19,17 @@
 # This script is the main project setup script.  For the most part, it
 # shouldn't be edited.  See job submission files for configuration
 # details.
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
-if [ "${HADOOP_SETUP}" == "yes" ]
-then
-    (${HAMSTER_SCRIPTS_HOME}/lib/setup/hamster-setup-project-hadoop)
+for project in ${HAMSTER_PROJECTS}
+do
+    _project=$(Hamster_to_lowercase ${project})
+    Hamster_echo "Running ${HAMSTER_SCRIPTS_HOME}/lib/setup/hamster-setup-project-${_project}"
+    (${HAMSTER_SCRIPTS_HOME}/lib/setup/hamster-setup-project-${_project})
     if [ $? -ne 0 ] ; then
         exit 1
     fi
-fi
+done
 
 exit 0

@@ -4,7 +4,7 @@
 
 submissiontype=sbatch-srun
 
-sbatchsrunpartition=storage
+sbatchsrunpartition=batch-storage
 
 # Test config
 #
@@ -14,7 +14,7 @@ sbatchsrunpartition=storage
 # additional 1 will be added later for the master.
 #
 # optional tweaks to test defaults to make some run faster
-basenodecount=5
+basenodecount=9
 hadoopterasortsize=10000000
 
 # Configure Makefile 

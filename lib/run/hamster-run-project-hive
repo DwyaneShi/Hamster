@@ -1,0 +1,94 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# These are functions to be called by hamster-run
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-run
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+Hamster_run_start_hive () {
+    if [ "${HIVE_SETUP}" == "yes" ]
+    then
+        # start metastore
+        source ${HIVE_CONF_DIR}/hive-metastore.sh
+        Hamster_metastore_start
+
+        # start zookeeper
+        cd ${ZOOKEEPER_HOME}
+
+        Hamster_echo "Starting zookeeper"
+
+        Hamster_echo "*******************************************************"
+        Hamster_echo "*"
+        Hamster_echo "* Zookeeper Information"
+        Hamster_echo "*"
+        Hamster_echo "* Zookeeper Server: ${HADOOP_MASTER_NODE}"
+        Hamster_echo "* Zookeeper Datadir: ${ZOOKEEPER_DATADIR}"
+        Hamster_echo "* Zookeeper Port: ${ZOOKEEPER_PORT}"
+        Hamster_echo "*"
+        Hamster_echo "*******************************************************"
+
+        ${zksetupscriptprefix}/zkServer.sh start
+
+        # init metastore
+        ${HIVE_HOME}/bin/schematool -dbType postgres -initSchema
+        ${HIVE_HOME}/bin/schematool -dbType postgres -info
+
+        # start hive metastore
+        ${HIVE_HOME}/bin/hive --service metastore &
+
+        sleep 15
+
+        # make necessary directories in hdfs
+        ${HADOOP_HOME}/bin/hadoop fs -rm -r -f -skipTrash /user/hive
+        ${HADOOP_HOME}/bin/hadoop fs -mkdir       /tmp
+        ${HADOOP_HOME}/bin/hadoop fs -mkdir  -p   /user/hive/warehouse
+        ${HADOOP_HOME}/bin/hadoop fs -chmod g+w   /tmp
+        ${HADOOP_HOME}/bin/hadoop fs -chmod g+w   /user/hive/warehouse
+
+        sleep 15
+    fi
+}
+
+Hamster_run_stop_hive () {
+    if [ "${HADOOP_SETUP}" == "yes" ]
+    then
+        # start metastore
+        source ${HIVE_CONF_DIR}/hive-metastore.sh
+        Hamster_metastore_stop
+
+        cd ${ZOOKEEPER_HOME}
+
+        Hamster_echo "Stopping zookeeper"
+
+        # Make variables unspecified for shutdown
+        Hamster_make_all_local_dirs_unspecified
+        ${zksetupscriptprefix}/zkServer.sh stop ${ZOOKEEPER_CONF_DIR}/zoo.cfg
+
+        # Make variables specific now within Hamster
+        Hamster_make_all_local_dirs_node_specific
+    fi
+}

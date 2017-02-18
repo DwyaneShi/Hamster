@@ -44,279 +44,86 @@ else
     exit 1
 fi
 
-if [ "${HADOOP_TERASORT_SIZE}X" == "X" ]
-then
-    terasortsize=50000000
-else
-    terasortsize=$HADOOP_TERASORT_SIZE
-fi
-
-if [ "${HADOOP_FILESYSTEM_MODE}" == "rawnetworkfs" ]
-then
-    pathprefix="${HADOOP_RAWNETWORKFS_PATH}/"
-elif [ "${HADOOP_FILESYSTEM_MODE}" == "intellustre" ]
-then
-    pathprefix="${HADOOP_INTELLUSTRE_PATH}/"
-fi
-
-if [ "${HADOOP_TERASORT_CLEAR_CACHE}X" != "X" ]
-then
-    if [ "${HADOOP_TERASORT_CLEAR_CACHE}" == "yes" ]
-    then
-        clearcache="-Ddfs.datanode.drop.cache.behind.reads=true -Ddfs.datanode.drop.cache.behind.writes=true"
-    else
-        clearcache=""
-    fi
-else
-    clearcache="-Ddfs.datanode.drop.cache.behind.reads=true -Ddfs.datanode.drop.cache.behind.writes=true"
-fi
+pathprefix="/benchmarks"
 
 cd ${HADOOP_HOME}
 
-#
-# Remove previous runs if they are lingering
-#
+blocksizes=( 64 128 256 512 )
+sizes=( 1 4 8 16 )
+policies=( "erasurecode" )
 
-if ${hadoopcmdprefix}/hadoop fs -ls ${pathprefix} | grep -q terasort-teragen
-then
-    command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-teragen"
-    $command
-fi
+for blocksize in "${blocksizes[@]}"
+do
 
-if ${hadoopcmdprefix}/hadoop fs -ls ${pathprefix} | grep -q terasort-sort
-then
-    command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-sort"
-    $command
-fi
+    opts="-D dfs.blocksize=${blocksize}m"
 
-if ${hadoopcmdprefix}/hadoop fs -ls ${pathprefix} | grep -q terasort-checksum
-then
-    command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-checksum"
-    $command
-fi
+    for size in "${sizes[@]}"
+    do
+        terasortsize=$(( ${size} * 1024 * 1024 * 10 ))
 
-if ${hadoopcmdprefix}/hadoop fs -ls ${pathprefix} | grep -q terasort-validate
-then
-    command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-validate"
-    $command
-fi
+        for policy in "${policies[@]}"
+        do
+            for i in {1..3}
+            do
+                #
+                # Remove previous runs if they are lingering
+                #
+                Hamster_command "${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${pathprefix}"
 
-if [ "${HADOOP_TERAGEN_MAP_COUNT:-0}" -ne "0" ]
-then
-    mtasks=$HADOOP_TERAGEN_MAP_COUNT
-else
-    # achu, as far as I can tell, Hadoop 1.0 does not have a mechanism
-    # to get the currently configured settings, so Hadoop 1.0 uses defaults.
-    if Hamster_hadoop_is_MR 2 || Hamster_hadoop_is_MR 3
-    then
-        # Calculate the sensible maximum number of map tasks there should be
-        # Want to add +1 mtasks, make each block just below blocksize
-        # instead of make each task make blocksize + scratch data.
-        terasortfullsize=`expr $terasortsize \* 100`
-        
-        if Hamster_hadoop_filesystem_mode_is_hdfs_type
-        then
-            defaultblocksize=`${hadoopcmdprefix}/hdfs getconf -confKey dfs.blocksize 2> /dev/null`
-        elif [ "${HADOOP_FILESYSTEM_MODE}" == "rawnetworkfs" ]
-        then
-            defaultblocksize=`${hadoopcmdprefix}/hdfs getconf -confKey fs.local.block.size 2> /dev/null`
-        elif [ "${HADOOP_FILESYSTEM_MODE}" == "intellustre" ]
-        then
-            defaultblocksize=`${hadoopcmdprefix}/hdfs getconf -confKey fs.block.size 2> /dev/null`
-        elif [ "${HADOOP_FILESYSTEM_MODE}" == "hamsternetworkfs" ]
-        then
-            defaultblocksize=`${hadoopcmdprefix}/hdfs getconf -confKey fs.hamsternetworkfs.block.size 2> /dev/null`
-        else
-            Hamster_output_internal_error "Illegal HADOOP_FILESYSTEM_MODE \"${HADOOP_FILESYSTEM_MODE}\" specified"
-            exit 1
-        fi
-        
-        mtasks=`expr $terasortfullsize \/ ${defaultblocksize}`
-        mtasks=`expr $mtasks + 1`
-        
-        # But use the default map task count if it is smaller than this max.
-        
-        defaultmaptasks=`${hadoopcmdprefix}/hdfs getconf -confKey mapreduce.job.maps 2> /dev/null`
-        
-        if [ "${defaultmaptasks}" -lt "${mtasks}" ]
-        then
-            mtasks=${defaultmaptasks}
-        fi
-        
-        mapreducemaptasks="-Dmapreduce.job.maps=${mtasks}"
-    elif Hamster_hadoop_is_MR 1
-    then 
-        mapreducemaptasks=""
-    fi
-fi
+                sleep 5
 
-Hamster_echo "*******************************************************"
-Hamster_echo "* Executing TeraGen"
-Hamster_echo "*******************************************************"
+                if [ "${policy}X" == "erasurecodeX" ]
+                then
+                    Hamster_command "${hadoopcmdprefix}/hadoop fs -mkdir ${pathprefix}"
+                    Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -setPolicy -p RS-DEFAULT-6-3-64k ${pathprefix}"
+                    Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -getPolicy ${pathprefix}"
+                    sleep 15
+                fi
 
-command="${hadoopcmdprefix}/hadoop jar ${terasortexamples} teragen ${extralibjars} ${mapreducemaptasks} ${clearcache} $terasortsize ${pathprefix}terasort-teragen"
-echo "Running $command" >&2
-$command
-            
-if [ "${HADOOP_TERASORT_RUN_TERACHECKSUM}" == "yes" ]
-then
-    sleep 30
+                Hamster_echo "*******************************************************"
+                Hamster_echo "* Executing TeraGen"
+                Hamster_echo "* blocksize: ${blocksize}MB"
+                Hamster_echo "* datasize: ${size}GB"
+                Hamster_echo "*******************************************************"
 
-    Hamster_echo "*******************************************************"
-    Hamster_echo "* Executing TeraChecksum"
-    Hamster_echo "*******************************************************"
+                Hamster_command "${hadoopcmdprefix}/hadoop jar ${terasortexamples} teragen ${opts} $terasortsize ${pathprefix}/terasort-teragen"
 
-    # I assume no user is concerned with performance here, we just go with this fixed number 
-    sumreducetasks=`expr $HADOOP_SLAVE_COUNT`
+                sleep 30
 
-    # To my surprise, TeraChecksum isn't in the mapreduce examples
-    # driver.  I wrote a patch for this and submitted it in
-    # MAPREDUCE-6624.  If it isn't available in a future version of
-    # Hadoop, we can just use teravalidate.
+                if [ "${HADOOP_TERASORT_REDUCER_COUNT:-0}" -ne "0" ]
+                then
+                    sortreducetasks=$HADOOP_TERASORT_REDUCER_COUNT
+                else
+                    sortreducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
+                fi
 
-    ${hadoopcmdprefix}/hadoop jar ${terasortexamples} terachecksum 2>&1 | grep -q "Unknown program"
-    if [ $? -eq 0 ]
-    then
-        whichchecksumcommand="teravalidate"
-        Hamster_echo "TeraChecksum not available, using TeraValidate instead"
-    else
-        whichchecksumcommand="terachecksum"
-    fi
+                if [ "${HADOOP_TERASORT_OUTPUT_REPLICATION}X" != "X" ]
+                then
+                    replicationcount="-Dmapreduce.terasort.output.replication=${HADOOP_TERASORT_OUTPUT_REPLICATION}"
+                fi
 
-    if Hamster_hadoop_is_MR 1
-    then
-        mapreducereducetasks="-Dmapred.reduce.tasks=$sumreducetasks"
-    elif Hamster_hadoop_is_MR 2
-    then
-        mapreducereducetasks="-Dmapreduce.job.reduces=$sumreducetasks"
-    elif Hamster_hadoop_is_MR 3
-    then
-        mapreducereducetasks="-Dmapreduce.job.reduces=$sumreducetasks"
-    fi
+                Hamster_echo "*******************************************************"
+                Hamster_echo "* Executing TeraSort"
+                Hamster_echo "* blocksize: ${blocksize}MB"
+                Hamster_echo "* datasize: ${size}GB"
+                Hamster_echo "*******************************************************"
 
-    command="${hadoopcmdprefix}/hadoop jar ${terasortexamples} ${whichchecksumcommand} ${extralibjars} ${mapreducereducetasks} ${pathprefix}terasort-teragen ${pathprefix}terasort-checksum"
+                if Hamster_hadoop_is_MR 1
+                then
+                    mapreducereducetasks="-Dmapred.reduce.tasks=$sortreducetasks"
+                elif Hamster_hadoop_is_MR 2
+                then
+                    mapreducereducetasks="-Dmapreduce.job.reduces=$sortreducetasks"
+                elif Hamster_hadoop_is_MR 3
+                then
+                    mapreducereducetasks="-Dmapreduce.job.reduces=$sortreducetasks"
+                fi
 
-    echo "Running $command" >&2
-    $command
+                Hamster_command "${hadoopcmdprefix}/hadoop jar ${terasortexamples} terasort ${opts} ${mapreducereducetasks} ${replicationcount}  ${pathprefix}/terasort-teragen ${pathprefix}/terasort-sort"
 
-    if [ "${whichchecksumcommand}" == "teravalidate" ]
-    then
-        inputchecksum=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-checksum/part-r-00000 | head -n 1 | awk '{print $2}'`
-    else
-        inputchecksum=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-checksum/part-r-00000`
-    fi
-    Hamster_print inputchecksum "TeraChecksum Checksum"
-fi
-
-sleep 30
-            
-if [ "${HADOOP_TERASORT_REDUCER_COUNT:-0}" -ne "0" ]
-then
-    sortreducetasks=$HADOOP_TERASORT_REDUCER_COUNT
-else
-    sortreducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
-fi
-
-if [ "${HADOOP_TERASORT_OUTPUT_REPLICATION}X" != "X" ]
-then
-    replicationcount="-Dmapreduce.terasort.output.replication=${HADOOP_TERASORT_OUTPUT_REPLICATION}"
-fi
-
-Hamster_echo "*******************************************************"
-Hamster_echo "* Executing TeraSort"
-Hamster_echo "*******************************************************"
-
-if Hamster_hadoop_is_MR 1
-then
-    mapreducereducetasks="-Dmapred.reduce.tasks=$sortreducetasks"
-elif Hamster_hadoop_is_MR 2
-then
-    mapreducereducetasks="-Dmapreduce.job.reduces=$sortreducetasks"
-elif Hamster_hadoop_is_MR 3
-then
-    mapreducereducetasks="-Dmapreduce.job.reduces=$sortreducetasks"
-fi
-
-command="${hadoopcmdprefix}/hadoop jar ${terasortexamples} terasort ${extralibjars} ${mapreducereducetasks} ${replicationcount} ${clearcache} ${pathprefix}terasort-teragen ${pathprefix}terasort-sort"
-
-echo "Running $command" >&2
-$command
-
-if [ "${HADOOP_TERASORT_RUN_TERAVALIDATE}" == "yes" ]
-then
-    sleep 30
-
-    Hamster_echo "*******************************************************"
-    Hamster_echo "* Executing TeraValidate"
-    Hamster_echo "*******************************************************"
-
-    # I assume no user is concerned with performance here, we just go with this fixed number 
-    validatereducetasks=`expr $HADOOP_SLAVE_COUNT`
-
-    if Hamster_hadoop_is_MR 1
-    then
-        mapreducereducetasks="-Dmapred.reduce.tasks=$validatereducetasks"
-    elif Hamster_hadoop_is_MR 2
-    then
-        mapreducereducetasks="-Dmapreduce.job.reduces=$validatereducetasks"
-    elif Hamster_hadoop_is_MR 3
-    then
-        mapreducereducetasks="-Dmapreduce.job.reduces=$validatereducetasks"
-    fi
-    
-    command="${hadoopcmdprefix}/hadoop jar ${terasortexamples} teravalidate ${extralibjars} ${mapreducereducetasks} ${pathprefix}terasort-sort ${pathprefix}terasort-validate"
-
-    echo "Running $command" >&2
-    $command
-
-    validateerrors=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-validate/part-r-00000 | grep error | wc -l`
-
-    if [ "${validateerrors}" != "0" ]
-    then
-        Hamster_echo "TeraValidate Result: Errors in terasort output"
-    else
-        Hamster_echo "TeraValidate Result: No errors in terasort output"
-    fi
-
-    outputchecksum=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-validate/part-r-00000 | head -n 1 | awk '{print $2}'`
-    Hamster_print outputchecksum "TeraValidate Checksum"
-fi
-
-if [ "${HADOOP_TERASORT_RUN_TERACHECKSUM}" == "yes" ] && [ "${HADOOP_TERASORT_RUN_TERAVALIDATE}" == "yes" ]
-then
-    Hamster_echo "*******************************************************"
-    Hamster_echo "* Comparing Checksums"
-    Hamster_echo "*******************************************************"
-
-    if [ "${whichchecksumcommand}" == "teravalidate" ]
-    then
-        inputchecksum=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-checksum/part-r-00000 | head -n 1 | awk '{print $2}'`
-    else
-        inputchecksum=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-checksum/part-r-00000`
-    fi
-    outputchecksum=`${hadoopcmdprefix}/hadoop fs -cat ${pathprefix}terasort-validate/part-r-00000 | head -n 1 | awk '{print $2}'`
-
-    if [ "${inputchecksum}" == "${outputchecksum}" ]
-    then
-        Hamster_echo "TeraSort Checksum Comparison: Input and output checksums match - ${inputchecksum}"
-    else
-        Hamster_echo "TeraSort Checksum Comparison: Input checksum ${inputchecksum} != output checksum ${outputchecksum}"
-    fi
-fi
-
-command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-teragen"
-$command
-command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-sort"
-$command
-if [ "${HADOOP_TERASORT_RUN_TERACHECKSUM}" == "yes" ]
-then
-    command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-checksum"
-    $command
-fi
-if [ "${HADOOP_TERASORT_RUN_TERAVALIDATE}" == "yes" ]
-then
-    command="${hadoopcmdprefix}/hadoop fs ${rmoption} ${pathprefix}terasort-validate"
-    $command
-fi
+            done
+        done
+    done
+done
 
 exit 0
