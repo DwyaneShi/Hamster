@@ -41,6 +41,11 @@ fi
 # Get config files for setup
 #
 
+# Sets hamster_openfilescount
+Hamster_calculate_openfiles ${HADOOP_SLAVE_COUNT}
+# Sets hamster_userprocessescount
+Hamster_calculate_userprocesses ${HADOOP_SLAVE_COUNT}
+
 # Hamster_find_conffile will set the 'pre' filenames
 
 Hamster_find_conffile "Hive" ${HIVE_CONF_FILES:-""} "hive-env.sh" "pre_hiveenvsh"
@@ -78,6 +83,9 @@ sed -i \
 sed -i \
     -e "s/ZOOKEEPER_PORT/${ZOOKEEPER_PORT}/g" \
     ${post_hivesitexml}
+
+echo "ulimit -n ${hamster_openfilescount}" >> ${post_hiveenvsh}
+echo "ulimit -u ${hamster_userprocessescount}" >> ${post_hiveenvsh}
 
 zkdatadirsubst=`echo ${ZOOKEEPER_DATADIR} | sed "s/\\//\\\\\\\\\//g"`
 
