@@ -30,6 +30,11 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-setup
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 
+if [ "${HIVE_SETUP}X" != "yesX" ]
+then
+    exit 0
+fi
+
 # hadoopnoderank set if succeed
 if ! Hamster_am_I_a_hadoop_node
 then

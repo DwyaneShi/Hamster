@@ -74,7 +74,7 @@ Hamster_run_start_hive () {
 }
 
 Hamster_run_stop_hive () {
-    if [ "${HADOOP_SETUP}" == "yes" ]
+    if [ "${HIVE_SETUP}" == "yes" ]
     then
         # start metastore
         source ${HIVE_CONF_DIR}/hive-metastore.sh
