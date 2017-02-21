@@ -5,29 +5,46 @@
 
 # The path you'd like to be installed into
 
+# set -o xtrace
 INSTALL_PATH="$HOME/workspace/bigdata/"
 
 # Configurations needed to rebuild all launching scripts to be pre-populated 
 # with INSTALL_PATH and several other paths & settings appropriately.  
 
+LOCAL_PREFIX="/data/drive1/haiyangshi/"
+# LOCAL_PREFIX="/data/ssd1/haiyangshi/"
 JAVA_HOME="$HOME/tools/jdk1.8.0"
 HOME_DIR_PATH="$HOME"
 LUSTRE_DIR_PATH="/lustre/$USER"
 NETWORKFS_DIR_PATH="/scratch/$USER"
 RAWNETWORKFS_DIR_PATH="/lustre/${USER}"
-LOCAL_DIR_PATH="/tmp/bigdata/"
-LOCAL_DRIVE_PATH="/tmp/bigdata/"
+LOCAL_DIR_PATH="${LOCAL_PREFIX}"
+LOCAL_DRIVE_PATH="${LOCAL_PREFIX}"
 
 # The range shown in nodelist is node[001, 004], but the actual hostname is
 # node001.cluster, ..., node004.cluster, then you need to set up this variable
 # to fix.
-HOSTNAME_SUFFIX=".cluster"
+HOSTNAME_SUFFIX="-ib.cluster"
+
+
+# projects
+# HAMSTER_PROJECTS="HADOOP HIVE"
+HAMSTER_PROJECTS="HADOOP"
 
 # Patches are based on the package version number.
 
 # HADOOP_VERSION="2.7.3"
 HADOOP_VERSION="3.0.0-alpha1"
 HADOOP_PACKAGE="hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz"
+
+HIVE_VERSION="2.1.1"
+HIVE_PACKAGE="hive/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz"
+HIVE_DEPENDENCIES="ZOOKEEPER"
+
+ZOOKEEPER_VERSION="3.4.9"
+ZOOKEEPER_PACKAGE="zookeeper/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz"
+ZOOKEEPER_DATADIR=${HOME}/datadir
+ZOOKEEPER_PORT="22231"
 
 # Check some basics
 
@@ -84,38 +101,48 @@ __apply_patches_if_exist () {
     done
 }
 
-__add_shared_libraries () {
-    local basedir=$1
-    if [ -d ${HAMSTER_SCRIPTS_HOME}/share ]; then
-        sharedfiles=`find ${HAMSTER_SCRIPTS_HOME}/share -type f | sed "s/^.*share\///g"`
-        for sharedfile in ${sharedfiles}
+HAMSTER_SETUP="HADOOP"
+__hamster_pipeline () {
+    local project=$1
+    if [ "${project}X" != "HADOOPX" ]
+    then
+        HAMSTER_SETUP="${HAMSTER_SETUP} ${project}"
+    fi
+
+    eval "package=\$${project}_PACKAGE"
+    if [ ! -f ${INSTALL_PATH}/${package##*/} ]
+    then
+        __download_package "${package}"
+    fi
+
+    PACKAGE_BASENAME=`basename ${package}`
+    echo "Untarring ${package}"
+
+    cd ${INSTALL_PATH}
+    tar -xzf ${PACKAGE_BASENAME}
+    cd -
+
+    PACKAGE_BASEDIR=$(echo `basename ${package}` | sed 's/\(.*\)\.\(.*\)\.\(.*\)/\1/g')
+    __apply_patches_if_exist ${PACKAGE_BASEDIR} \
+        ${HAMSTER_SCRIPTS_HOME}/patches/${PACKAGE_BASEDIR}.patch
+
+    eval "dependencies=\$${project}_DEPENDENCIES"
+    if [ "${dependencies}X" != "X" ]
+    then
+        for dependency in ${dependencies}
         do
-            cp ${HAMSTER_SCRIPTS_HOME}/share/${sharedfile} ${INSTALL_PATH}/${basedir}/share/hadoop/${sharedfile}
+            __hamster_pipeline ${dependency}
         done
     fi
 }
 
-if [ ! -f ${INSTALL_PATH}/${HADOOP_PACKAGE##*/} ]
-then
-    __download_package "${HADOOP_PACKAGE}"
-fi
-
-PACKAGE_BASENAME=`basename ${HADOOP_PACKAGE}`
-echo "Untarring ${PACKAGE_BASENAME}"
-
-cd ${INSTALL_PATH}
-tar -xzf ${PACKAGE_BASENAME}
-
-HADOOP_PACKAGE_BASEDIR=$(echo `basename ${HADOOP_PACKAGE}` | sed 's/\(.*\)\.\(.*\)\.\(.*\)/\1/g')
-__apply_patches_if_exist ${HADOOP_PACKAGE_BASEDIR} \
-    ${HAMSTER_SCRIPTS_HOME}/patches/${HADOOP_PACKAGE_BASEDIR}.patch
-
-if [ ${SHARED_FILES} ]
-then
-    __add_shared_libraries ${HADOOP_PACKAGE_BASEDIR}
-fi
+for project in ${HAMSTER_PROJECTS}
+do
+    __hamster_pipeline ${project}
+done
 
 HAMSTER_SCRIPTS_HOME_DIRNAME=`dirname ${HAMSTER_SCRIPTS_HOME}`
+rm -rf ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}
 Hamster_mkdir ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}
 cp ${HAMSTER_SCRIPTS_HOME}/scripts/submission/templates/Makefile ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/
 hamsterscriptshomedirnamesubst=`echo ${HAMSTER_SCRIPTS_HOME_DIRNAME} | sed "s/\\//\\\\\\\\\//g"`
@@ -124,6 +151,11 @@ sed -i -e "s/HAMSTER_SCRIPTS_DIR_PREFIX=\(.*\)/HAMSTER_SCRIPTS_DIR_PREFIX=${hams
 installpathsubst=`echo ${INSTALL_PATH} | sed "s/\\//\\\\\\\\\//g"`
 sed -i -e "s/HADOOP_DIR_PREFIX=\(.*\)/HADOOP_DIR_PREFIX=${installpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 sed -i -e "s/HADOOP_VERSION=\(.*\)/HADOOP_VERSION=${HADOOP_VERSION}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/HIVE_VERSION=\(.*\)/HIVE_VERSION=${HIVE_VERSION}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/ZOOKEEPER_VERSION=\(.*\)/ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
+zkdatadirsubst=`echo ${ZOOKEEPER_DATADIR} | sed "s/\\//\\\\\\\\\//g"`
+sed -i -e "s/ZOOKEEPER_DATADIR=\(.*\)/ZOOKEEPER_DATADIR=${zkdatadirsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/ZOOKEEPER_PORT=\(.*\)/ZOOKEEPER_PORT=${ZOOKEEPER_PORT}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 
 if [ "${JAVA_HOME}X" != "X" ]
 then
@@ -167,6 +199,9 @@ then
     localdrivepathsubst=`echo ${LOCAL_DRIVE_PATH} | sed "s/\\//\\\\\\\\\//g"`
     sed -i -e "s/LOCAL_DRIVE_PREFIX=\(.*\)/LOCAL_DRIVE_PREFIX=${localdrivepathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 fi 
+
+sed -i -e "s/^HAMSTER_PROJECTS=\(.*\)/HAMSTER_PROJECTS=\"${HAMSTER_PROJECTS}\"/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
+sed -i -e "s/^HAMSTER_SETUP=\(.*\)/HAMSTER_SETUP=\"${HAMSTER_SETUP}\"/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 
 hostnamesuffixsubst=`echo ${HOSTNAME_SUFFIX} | sed "s/\\//\\\\\\\\\//g"`
 sed -i -e "s/HOSTNAME_SUFFIX=\(.*\)/HOSTNAME_SUFFIX=${hostnamesuffixsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile

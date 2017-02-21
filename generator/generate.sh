@@ -20,6 +20,7 @@ fi
 
 hamsterscriptshomesubst=`echo ${HAMSTER_SCRIPTS_HOME} | sed "s/\\//\\\\\\\\\//g"`
 
+rm -rf ${HAMSTER_SCRIPTS_HOME}/scripts/submission/generator
 mkdir -p ${HAMSTER_SCRIPTS_HOME}/scripts/submission/generator
 cp ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile ${HAMSTER_SCRIPTS_HOME}/scripts/submission/generator/Makefile
 
