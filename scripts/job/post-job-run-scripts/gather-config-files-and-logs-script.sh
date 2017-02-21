@@ -44,7 +44,7 @@ Gather_common () {
     fi
 }
 
-for project in ${HAMSTER_PROEJCTS}
+for project in ${HAMSTER_PROJECTS}
 do
     Gather_common ${project} "y" "y"
 done
