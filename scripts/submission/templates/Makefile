@@ -188,7 +188,7 @@ define create-all
 	$(call common, ${HAMSTER})
 	$(call common-additions, ${HAMSTER})
 	sed -i -e "s/HAMSTER_JOB_TYPE=\"\(.*\)\"/HAMSTER_JOB_TYPE=\"hadoop\"/" $(HAMSTER)
-	for project in ${HAMSTER_SETUP}; \
+	for project in "${HAMSTER_SETUP}"; \
 	do \
 		sed -i -e "s/$${project}_SETUP=.*/$${project}_SETUP=yes/" $(HAMSTER); \
 	done
