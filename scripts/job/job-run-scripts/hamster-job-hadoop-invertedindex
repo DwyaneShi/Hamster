@@ -25,12 +25,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-$
 
 examples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
 
-if [ "${HADOOP_TERASORT_REDUCER_COUNT:-0}" -ne "0" ]
-then
-    reducetasks=$HADOOP_TERASORT_REDUCER_COUNT
-else
-    reducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
-fi
+reducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
 
 pathprefix=/benchmarks
 workload="wikipedia_50GB"
