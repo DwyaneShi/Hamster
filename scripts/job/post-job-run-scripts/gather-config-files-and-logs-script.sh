@@ -23,8 +23,8 @@ Gather_common () {
     local projectconfdir="${projectuppercase}_CONF_DIR"
     local projectlogdir="${projectuppercase}_LOG_DIR"
 
-    targetdir=${HOME}/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}/${project}/nodes/${NODENAME}
-    
+    targetdir=${HOME}/log/${HAMSTER_JOB_NAME}/${HAMSTER_JOB_ID}/${project}/nodes/${NODENAME}
+
     if [ "${saveconfdir}" == "y" ]
     then
         if [ "${!projectconfdir}X" != "X" ] && [ -d ${!projectconfdir}/ ] && [ "$(ls -A ${!projectconfdir}/)" ]
@@ -48,5 +48,8 @@ for project in ${HAMSTER_PROJECTS}
 do
     Gather_common ${project} "y" "y"
 done
+
+# gather monitor logs
+Gather_common "MONITOR" "x" "y"
 
 exit 0

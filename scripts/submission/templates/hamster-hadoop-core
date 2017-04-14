@@ -8,34 +8,11 @@
 #
 export HADOOP_SETUP=no
 
-# Set Hadoop Setup Type
-#
-# Will inform scripts on how to setup config files and what daemons to
-# launch/setup.  The hadoop build/binaries set by HADOOP_HOME
-# needs to match up with what you set here.
-#
-# MR - MapReduce/Hadoop w/ HDFS
-# HDFS - HDFS only w/ Hadoop
-#
-# The HDFS only options may be useful when you want to use HDFS with
-# other big data software, such as Hbase, and do not care for using
-# Hadoop MapReduce.  It only works with HDFS based
-# HADOOP_FILESYSTEM_MODE, such as "hdfs", "hdfsoverlustre", or
-# "hdfsovernetworkfs".
-#
-export HADOOP_SETUP_TYPE="HADOOPSETUPTYPE"
-
 # Version
-#
-# Make sure the version for Mapreduce version 1 or 2 matches whatever
-# you set in HADOOP_SETUP_TYPE
 #
 export HADOOP_VERSION="HADOOPVERSION"
 
 # Path to your Hadoop build/binaries
-#
-# Make sure the build for MapReduce or HDFS version 1 or 2 matches
-# whatever you set in HADOOP_SETUP_TYPE.
 #
 # This should be accessible on all nodes in your allocation. Typically
 # this is in an NFS mount.

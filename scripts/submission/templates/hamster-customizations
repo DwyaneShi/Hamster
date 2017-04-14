@@ -1,6 +1,10 @@
 ############################################################################
 # Hamster Configurations
 ############################################################################
+#
+# If Hamster_verbose is set to true, environment variables will be print out
+# default value is false
+export Hamster_verbose=false
 
 # Directory your launching scripts/files are stored
 #
@@ -20,18 +24,13 @@ export HAMSTER_LOCAL_DIR="LOCALDIRPREFIX/hamster"
 # Hamster job type
 #
 @HAMSTER_JOB_TYPES@
-# "testall" - Run a job that runs all basic sanity tests for all
-#             software that is configured to be setup.  This is a good
-#             way to sanity check that everything has been setup
-#             correctly and the way you like.
-#
-@HAMSTER_TESTALL_TYPES@
 #
 # "script" - Run an arbitraty script, as specified by HAMSTER_SCRIPT_PATH.
 #
 # "interactive" - manually interact with job run.
 #
 export HAMSTER_JOB_TYPE="script"
+export HAMSTER_SCRIPT_PATH="${HAMSTER_SCRIPTS_HOME}/scripts/job/job-run-scripts/hamster-job-hadoop-terasort"
 
 # Specify script to execute for "script" mode in HAMSTER_JOB_TYPE
 #
@@ -43,7 +42,7 @@ export HAMSTER_JOB_TYPE="script"
 # generated until the job has launched.  You won't be able to use them
 # here.
 #
-# export HAMSTER_SCRIPT_ARGS="" 
+export HAMSTER_SCRIPT_ARGS=""
 
 # Specify script startup / shutdown time window
 #

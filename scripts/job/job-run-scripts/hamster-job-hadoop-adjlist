@@ -1,0 +1,92 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-${HADOOP_VERSION}/lib/native:/home/shi.876/lib
+
+examples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
+
+if [ "${HADOOP_TERASORT_REDUCER_COUNT:-0}" -ne "0" ]
+then
+    reducetasks=$HADOOP_TERASORT_REDUCER_COUNT
+else
+    reducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
+fi
+
+pathprefix=/benchmarks
+workload="adjlist_30GB"
+policy="erasurecode"
+
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${pathprefix}"
+
+sleep 5
+
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -mkdir ${pathprefix}"
+
+if [ "${policy}X" == "erasurecodeX" ]
+then
+    Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hdfs erasurecode -setPolicy -p RS-DEFAULT-6-3-64k ${pathprefix}"
+    Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hdfs erasurecode -getPolicy ${pathprefix}"
+    sleep 15
+fi
+
+# put workload
+
+dir=/data/ssd1/hy_workload
+Hamster_command "mkdir -p ${dir}"
+Hamster_command "cd ${dir}"
+if [ ! -d ${HAMSTER_SCRIPTS_HOME}/benchmarks/puma/${workload} ]
+then
+    Hamster_command "tar xvf ${HAMSTER_SCRIPTS_HOME}/benchmarks/puma/${workload}.tar.bz2"
+else
+    Hamster_command "cp -R ${HAMSTER_SCRIPTS_HOME}/benchmarks/puma/${workload} ./"
+fi
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -put ${workload} ${pathprefix}"
+if [ $? != 0 ]
+then
+    Hamster_echo "Putting workload failed!"
+    Hamster_command "rm -rf ${dir}"
+    exit 1
+fi
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -ls ${pathprefix}/${workload}"
+Hamster_command "rm -rf ${dir}"
+Hamster_command "cd -"
+
+opts=""
+
+for i in {1..3}
+do
+    sleep 10
+
+    Hamster_echo "*******************************************************"
+    Hamster_echo "* Adjacency-List"
+    Hamster_echo "* workload: ${workload}"
+    Hamster_echo "*******************************************************"
+
+    Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/yarn jar ${examples} adjlist ${opts} -m 1 -r ${reducetasks} ${pathprefix}/${workload} ${pathprefix}/${workload}_output"
+    sleep 5
+    Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${pathprefix}/${workload}_output"
+done
+
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${pathprefix}"
+
+exit 0

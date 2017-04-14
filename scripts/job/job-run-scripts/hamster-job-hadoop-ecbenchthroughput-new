@@ -1,0 +1,86 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+examples="share/hadoop/hdfs/hadoop-hdfs-${HADOOP_VERSION}-tests.jar"
+
+# blocksizes=( 64 128 256 512 )
+# bench="gen_read"
+blocksizes=( 128 )
+bench="write"
+
+for blocksize in "${blocksizes[@]}"
+do
+
+    opts="-D dfs.blocksize=${blocksize}m"
+    sizes=( 1 4 8 16 )
+    clients=( 1 )
+    # types=( "RS-DEFAULT-6-3-64k" )
+    # types=( "RS-NATIVE-6-3-64k" )
+    # types=( "RS-LEGACY-6-3-64k" )
+    # types=( "RS-OFFLOAD-6-3-64k" )
+
+    # types=( "TUNED-RS-DEFAULT-1-6-3-1024k" )
+    types=( "TUNED-RS-NATIVE-1-6-3-1024k" )
+
+    # types=( "RS-DEFAULT-6-3-64k" "RS-NATIVE-6-3-64k" "RS-OFFLOAD-6-3-64k" )
+
+    for client in "${clients[@]}"
+    do
+
+        for size in "${sizes[@]}"
+        do
+
+            for tpe in "${types[@]}"
+            do
+                for it in {1..3}
+                do
+
+                    mb=$(( ${size} * 1024 ))
+
+                    Hamster_echo "*******************************************************"
+                    Hamster_echo "* ECBenchThroughput"
+                    Hamster_echo "* blocksize: ${blocksize}MB"
+                    Hamster_echo "* # clients: ${client}"
+                    Hamster_echo "* datasize: ${size}GB"
+                    Hamster_echo "* type: ${tpe}"
+                    Hamster_echo "*******************************************************"
+
+                    Hamster_command "${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash /tmp/benchmark"
+
+                    sleep 5
+
+                    if [ "${bench}X" == "gen_readX" ]
+                    then
+                        Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} gen ${mb} ${tpe} ${client}"
+                        sleep 25
+                        Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} read ${mb} ${tpe} ${client} stf"
+                    else
+                        Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.hdfs.ErasureCodeBenchmarkThroughput ${opts} write ${mb} ${tpe} ${client}"
+                    fi
+                done
+            done
+        done
+    done
+done
+
+exit 0

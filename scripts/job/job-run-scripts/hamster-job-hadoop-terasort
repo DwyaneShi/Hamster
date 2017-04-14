@@ -1,0 +1,130 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script is the core terasort running script.  For the most part,
+# it shouldn't be edited.  See job submission files for configuration
+# details.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+# This is a job, no loading export files or libs except for minimal convenience ones
+
+if Hamster_hadoop_is 1
+then
+    terasortexamples="hadoop-examples-$HADOOP_VERSION.jar"
+    rmoption="-rmr"
+elif Hamster_hadoop_is 2
+then
+    terasortexamples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
+    rmoption="-rm -r"
+elif Hamster_hadoop_is 3
+then
+    terasortexamples="share/hadoop/mapreduce/hadoop-mapreduce-examples-$HADOOP_VERSION.jar"
+    rmoption="-rm -r"
+else
+    Hamster_output_internal_error "Illegal"
+    exit 1
+fi
+
+mappers=16
+pathprefix="/benchmarks"
+
+cd ${HADOOP_HOME}
+
+blocksizes=( 64 128 256 512 )
+sizes=( 1 4 8 16 )
+policies=( "erasurecode" )
+
+for blocksize in "${blocksizes[@]}"
+do
+
+    opts="-D dfs.blocksize=${blocksize}m"
+
+    for size in "${sizes[@]}"
+    do
+        terasortsize=$(( ${size} * 1024 * 1024 * 10 ))
+
+        for policy in "${policies[@]}"
+        do
+            for i in {1..3}
+            do
+                #
+                # Remove previous runs if they are lingering
+                #
+                Hamster_command "${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${pathprefix}"
+
+                sleep 5
+
+                if [ "${policy}X" == "erasurecodeX" ]
+                then
+                    Hamster_command "${hadoopcmdprefix}/hadoop fs -mkdir ${pathprefix}"
+                    Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -setPolicy -p RS-DEFAULT-6-3-64k ${pathprefix}"
+                    Hamster_command "${hadoopcmdprefix}/hdfs erasurecode -getPolicy ${pathprefix}"
+                    sleep 15
+                fi
+
+                Hamster_echo "*******************************************************"
+                Hamster_echo "* Executing TeraGen"
+                Hamster_echo "* blocksize: ${blocksize}MB"
+                Hamster_echo "* datasize: ${size}GB"
+                Hamster_echo "*******************************************************"
+
+                Hamster_command "${hadoopcmdprefix}/hadoop jar ${terasortexamples} teragen ${opts} -D mapreduce.job.maps=${mappers} $terasortsize ${pathprefix}/terasort-teragen"
+
+                sleep 30
+
+                if [ "${HADOOP_TERASORT_REDUCER_COUNT:-0}" -ne "0" ]
+                then
+                    sortreducetasks=$HADOOP_TERASORT_REDUCER_COUNT
+                else
+                    sortreducetasks=`expr $HADOOP_SLAVE_COUNT \* 2`
+                fi
+
+                if [ "${HADOOP_TERASORT_OUTPUT_REPLICATION}X" != "X" ]
+                then
+                    replicationcount="-Dmapreduce.terasort.output.replication=${HADOOP_TERASORT_OUTPUT_REPLICATION}"
+                fi
+
+                Hamster_echo "*******************************************************"
+                Hamster_echo "* Executing TeraSort"
+                Hamster_echo "* blocksize: ${blocksize}MB"
+                Hamster_echo "* datasize: ${size}GB"
+                Hamster_echo "*******************************************************"
+
+                if Hamster_hadoop_is 1
+                then
+                    mapreducereducetasks="-Dmapred.reduce.tasks=$sortreducetasks"
+                elif Hamster_hadoop_is 2
+                then
+                    mapreducereducetasks="-Dmapreduce.job.reduces=$sortreducetasks"
+                elif Hamster_hadoop_is 3
+                then
+                    mapreducereducetasks="-Dmapreduce.job.reduces=$sortreducetasks"
+                fi
+
+                Hamster_command "${hadoopcmdprefix}/hadoop jar ${terasortexamples} terasort ${opts} ${mapreducereducetasks} ${replicationcount}  ${pathprefix}/terasort-teragen ${pathprefix}/terasort-sort"
+
+            done
+        done
+    done
+done
+
+exit 0

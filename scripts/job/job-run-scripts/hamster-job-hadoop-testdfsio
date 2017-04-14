@@ -1,0 +1,108 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-${HADOOP_VERSION}/lib/native:/home/shi.876/lib
+
+testdfsioexamples="share/hadoop/mapreduce/hadoop-mapreduce-client-jobclient-${HADOOP_VERSION}-tests.jar"
+
+# blocksizes=( 64 128 256 512 )
+blocksizes=( 128 )
+flag="wr"
+# flag="w"
+
+cd ${HADOOP_HOME}
+
+for blocksize in "${blocksizes[@]}"
+do
+
+    opts="-D dfs.blocksize=${blocksize}m"
+    concurrency=( 4 )
+    sizes=( 16 )
+    policies=( "erasurecode" )
+
+    for i in {1..3}
+    do
+
+        for f in "${concurrency[@]}"
+        do
+
+            for size in "${sizes[@]}"
+            do
+
+                for policy in "${policies[@]}"
+                do
+
+                    command="${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash /benchmarks"
+                    echo "Running $command" >&2
+                    $command
+
+                    sleep 5
+
+                    if [ "${policy}X" == "erasurecodeX" ]
+                    then
+                        command="${hadoopcmdprefix}/hadoop fs -mkdir /benchmarks"
+                        echo "Running $command" >&2
+                        $command
+                        command="${hadoopcmdprefix}/hdfs erasurecode -setPolicy -p RS-DEFAULT-6-3-64k /benchmarks"
+                        echo "Running $command" >&2
+                        $command
+                        command="${hadoopcmdprefix}/hdfs erasurecode -getPolicy /benchmarks"
+                        echo "Running $command" >&2
+                        $command
+                        sleep 15
+                    fi
+
+                    Hamster_echo "*******************************************************"
+                    Hamster_echo "* TESTDFSIO Write"
+                    Hamster_echo "* blocksize: ${blocksize}MB"
+                    Hamster_echo "* concurrency: ${f}"
+                    Hamster_echo "* datasize: ${size}GB/file"
+                    Hamster_echo "*******************************************************"
+
+                    command="${hadoopcmdprefix}/yarn jar ${testdfsioexamples} TestDFSIO ${opts} -write -nrFiles ${f} -fileSize ${size}GB"
+                    echo "Running $command" >&2
+                    $command
+
+                    if [ "${flag}X" == "wrX" ]
+                    then
+                        sleep 30
+
+                        Hamster_echo "*******************************************************"
+                        Hamster_echo "* TESTDFSIO Read"
+                        Hamster_echo "* blocksize: ${blocksize}MB"
+                        Hamster_echo "* concurrency: ${f}"
+                        Hamster_echo "* datasize: ${size}GB/file"
+                        Hamster_echo "*******************************************************"
+
+                        command="${hadoopcmdprefix}/yarn jar ${testdfsioexamples} TestDFSIO ${opts} -read -nrFiles ${f} -fileSize ${size}GB"
+                        echo "Running $command" >&2
+                        $command
+                    fi
+
+                done
+            done
+        done
+    done
+done
+
+exit 0

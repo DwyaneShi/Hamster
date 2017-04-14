@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -36,11 +36,11 @@ __Hamster_handle_job_name_corner_cases () {
     # Handle special corner cases where user's job name may not
     # play nice, as we use it in file paths and what not
     if [[ $HAMSTER_JOB_NAME =~ "\$" ]]; then
-        Hamster_echo "Job name contains dollar sign, internally replacing with underscore" 
+        Hamster_echo "Job name contains dollar sign, internally replacing with underscore"
         export HAMSTER_JOB_NAME=${HAMSTER_JOB_NAME//\$/_}
     fi
     if [[ $HAMSTER_JOB_NAME =~ [[:space:]] ]]; then
-        Hamster_echo "Job name contains whitespace, internally replacing with underscore" 
+        Hamster_echo "Job name contains whitespace, internally replacing with underscore"
         export HAMSTER_JOB_NAME=${HAMSTER_JOB_NAME//[[:space:]]/_}
     fi
 }

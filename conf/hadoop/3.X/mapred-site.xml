@@ -85,7 +85,7 @@
 
 <property>
   <name>mapreduce.admin.user.env</name>
-  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME,LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME,LDLIBRARYPATH</value>
   <description>
   https://issues.apache.org/jira/browse/MAPREDUCE-6704
   </description>
@@ -93,7 +93,7 @@
 
 <property>
   <name> mapred.child.env</name>
-  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME,LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME,LDLIBRARYPATH</value>
   <description>
   https://issues.apache.org/jira/browse/MAPREDUCE-6704
   </description>
@@ -306,17 +306,17 @@
 
 <property>
   <name>yarn.app.mapreduce.am.env</name>
-  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME,LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+  <value>HADOOP_MAPRED_HOME=HADOOPMAPREDHOME,LDLIBRARYPATH</value>
   <decription>https://issues.apache.org/jira/browse/MAPREDUCE-6704</decription>
 </property>
 
 <property>
   <name>mapreduce.map.env</name>
-  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+  <value>LDLIBRARYPATH</value>
 </property>
 <property>
   <name>mapreduce.reduce.env</name>
-  <value>LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-3.0.0-alpha1/lib/native:/home/shi.876/lib</value>
+  <value>LDLIBRARYPATH</value>
 </property>
 
 </configuration>

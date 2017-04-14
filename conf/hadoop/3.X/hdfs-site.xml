@@ -201,5 +201,34 @@ In some workloads, the data written to HDFS is known to be significantly large e
   </description>
 </property>
 
-</configuration>
+<property>
+    <name>dfs.client-write-packet-size</name>
+    <value>65536</value>
+    <decription>
+    packet size: 65536 131072 262177 524288 1048576 2097152 4194304 8388608
+    </decription>
+</property>
 
+<property>
+    <name>dfs.client.policy.new-design.enabled</name>
+    <value>true</value>
+    <decription>
+    Whether enable new design when HDFS is setting up
+    </decription>
+</property>
+
+<property>
+    <name>dfs.client.write.max-running-ec-threads</name>
+    <value>1</value>
+    <decription>
+    </decription>
+</property>
+
+<property>
+    <name>dfs.client.write.max-waiting-ec-jobs</name>
+    <value>64</value>
+    <decription>
+    </decription>
+</property>
+
+</configuration>

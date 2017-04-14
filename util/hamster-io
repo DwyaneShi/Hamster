@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -22,13 +22,16 @@ Hamster_hostname () {
 }
 
 Hamster_print () {
-    local val=$1
-    local str=$2
-    if [ "${str}X" != "X" ]
+    if [ "${Hamster_verbose}X" == "trueX" ]
     then
-        echo "$(Hamster_hostname)> ${str}: ${!val}"
-    else
-        echo "$(Hamster_hostname)> ${val}: ${!val}"
+        local val=$1
+        local str=$2
+        if [ "${str}X" != "X" ]
+        then
+            echo "$(Hamster_hostname)> ${str}: ${!val}"
+        else
+            echo "$(Hamster_hostname)> ${val}: ${!val}"
+        fi
     fi
 }
 

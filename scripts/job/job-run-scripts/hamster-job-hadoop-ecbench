@@ -1,0 +1,82 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+examples="share/hadoop/common/hadoop-common-${HADOOP_VERSION}-tests.jar"
+
+# blocks=( 1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 )
+blocks=( 1024 )
+chunksizes=( 1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 )
+clients=( 1 2 4 8 16 32 64 )
+# coder=1 # legacy-rs
+# coder=2 # rs
+# coder=3 # isa-l
+coder=4 # mellanox
+single_coder="true"
+
+for block in "${blocks[@]}"
+do
+
+    for chunksize in "${chunksizes[@]}"
+    do
+        size=`expr 6 \* ${block} \* ${chunksize}`
+        g100=104857600
+
+        if [ ${size} -gt ${g100} ]
+        then
+            continue
+        fi
+
+        for client in "${clients[@]}"
+        do
+            for i in {1..3}
+            do
+                Hamster_echo "*******************************************************"
+                Hamster_echo "* ECBench Encode ${size}KB"
+                Hamster_echo "* #Blocks: ${block}"
+                Hamster_echo "* ChunkSize: ${chunksize}"
+                Hamster_echo "* Concurrency: ${client}"
+                Hamster_echo "* single_coder: ${single_coder}"
+                Hamster_echo "*******************************************************"
+
+                Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.io.erasurecode.rawcoder.RawErasureCoderBenchmark encode ${coder} ${client} ${size} ${chunksize} ${single_coder}"
+
+                sleep 1
+
+                Hamster_echo "*******************************************************"
+                Hamster_echo "* ECBench Decode ${size}KB"
+                Hamster_echo "* #Blocks: ${block}"
+                Hamster_echo "* ChunkSize: ${chunksize}"
+                Hamster_echo "* Concurrency: ${client}"
+                Hamster_echo "* single_coder: ${single_coder}"
+                Hamster_echo "*******************************************************"
+
+                Hamster_command "${hadoopcmdprefix}/yarn jar ${examples} org.apache.hadoop.io.erasurecode.rawcoder.RawErasureCoderBenchmark decode ${coder} ${client} ${size} ${chunksize} ${single_coder}"
+
+                sleep 1
+            done
+        done
+    done
+
+done
+
+exit 0

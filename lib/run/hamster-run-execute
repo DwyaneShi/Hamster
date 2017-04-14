@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -124,11 +124,11 @@ then
         # We use SIGUSR1 and SIGUSR2 above & below.  Signal 28, SIGWINCH seems a good choice
         # to use.
         if [ "${HADOOP_SETUP}" == "yes" ] \
-            && (Hamster_hadoop_is_MR 2 || Hamster_hadoop_is_MR 3)
+            && (Hamster_hadoop_is 2 || Hamster_hadoop_is 3)
         then
             Hamster_echo "*"
             Hamster_echo "* Hamster is aware that Yarn has been launched.  If user wishes to"
-            Hamster_echo "* kill all currently submitted Yarn jobs in the PREP or" 
+            Hamster_echo "* kill all currently submitted Yarn jobs in the PREP or"
             Hamster_echo "* RUNNING state to be killed before killing the job, run:"
             Hamster_echo "*"
             Hamster_echo "* ${HAMSTER_REMOTE_CMD:-ssh}${HAMSTER_REMOTE_CMD_OPTS:+" "}${HAMSTER_REMOTE_CMD_OPTS} ${myhostname} kill -s 28 ${mypid}"
@@ -139,7 +139,7 @@ then
     Hamster_echo "*******************************************************"
 
     trap "echo \"Received interrupt from user, ${typemessage} ending early.\"; kill -s 9 ${childpid}" 10
-fi    
+fi
 
 # Some systems have SIGUSR2 as USR2 so we hardcode the value of 12
 

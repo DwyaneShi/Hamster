@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -35,14 +35,14 @@ hamster_slave_core_count=`cat /proc/cpuinfo | grep processor | wc -l`
 if [ "${HADOOP_SETUP}" == "yes" ]
 then
     if [ ! -f "${HADOOP_CONF_DIR}/masters" ]
-    then 
+    then
         Hamster_output_internal_error "${HADOOP_CONF_DIR}/masters does not exist"
     fi
 
     slave_file=$(Hamster_hadoop_slave_or_worker_file)
     Hamster_print slave_file
     if [ ! -f "${HADOOP_CONF_DIR}/${slave_file}" ]
-    then 
+    then
         Hamster_output_internal_error "${HADOOP_CONF_DIR}/${slave_file} does not exist"
     fi
 
@@ -58,7 +58,7 @@ then
     export HADOOP_HDFS_HOME=${HADOOP_HOME}
     export HADOOP_COMMON_HOME=${HADOOP_HOME}
     export YARN_COMMON_HOME=${HADOOP_HOME}
-    
+
     export HADOOP_MASTER_NODE=`head -1 ${HADOOP_CONF_DIR}/masters`
 
     Hamster_print HADOOP_MAPRED_HOME
@@ -68,7 +68,7 @@ then
     Hamster_print HADOOP_COMMON_HOME
     Hamster_print YARN_COMMON_HOME
     Hamster_print HADOOP_MASTER_NODE
-    
+
     if Hamster_hadoop_filesystem_mode_is_hdfs_type
     then
         export HADOOP_NAMENODE=`head -1 ${HADOOP_CONF_DIR}/masters`
@@ -76,9 +76,9 @@ then
         Hamster_print HADOOP_NAMENODE
         Hamster_print HADOOP_NAMENODE_PORT
     fi
-    
+
     export HADOOP_SLAVE_COUNT=`cat ${HADOOP_CONF_DIR}/${slave_file}|wc -l`
-    
+
     export HADOOP_SLAVE_CORE_COUNT=`expr ${hamster_slave_core_count} \* ${HADOOP_SLAVE_COUNT}`
     Hamster_print HADOOP_SLAVE_COUNT
     Hamster_print HADOOP_SLAVE_CORE_COUNT

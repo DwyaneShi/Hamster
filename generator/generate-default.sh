@@ -10,6 +10,5 @@ GenerateDefaultStandardTests() {
     echo "Making Default Standard Tests"
 
     # Default Tests
-    cp ../scripts/submission/generator/script-${submissiontype}/hamster.${submissiontype} hamster.${submissiontype}-hadoop-default-run-hadoopterasort
-    cp ../scripts/submission/generator/script-${submissiontype}/hamster.${submissiontype} hamster.${submissiontype}-hadoop-default-run-hadoopterasort-no-local-dir
+    cp ../scripts/submission/generator/script-${submissiontype}/hamster.${submissiontype} hamster.${submissiontype}-hadoop-run
 }

@@ -54,7 +54,7 @@
 
 <property>
   <name>fs.local.block.size</name>
-  <value>LOCALBLOCKSIZE</value>
+  <value>HDFSBLOCKSIZE</value>
   <description>Block size to use when writing files to local.</description>
 </property>
 
@@ -78,9 +78,4 @@
     browsing files).
   </description>
 </property>
-
-@INTELLUSTRE@
-
-@VIEWFSMOUNT@
-
 </configuration>

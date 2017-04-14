@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script will download Hadoop for Hamster, and put it in a directory 
+# This script will download Hadoop for Hamster, and put it in a directory
 # based on settings below, and apply patches as needed.
 
 # The path you'd like to be installed into
@@ -8,17 +8,16 @@
 # set -o xtrace
 INSTALL_PATH="$HOME/workspace/bigdata/"
 
-# Configurations needed to rebuild all launching scripts to be pre-populated 
-# with INSTALL_PATH and several other paths & settings appropriately.  
+# Configurations needed to rebuild all launching scripts to be pre-populated
+# with INSTALL_PATH and several other paths & settings appropriately.
 
-LOCAL_PREFIX="/data/drive1/haiyangshi/"
-# LOCAL_PREFIX="/data/ssd1/haiyangshi/"
+# LOCAL_PREFIX="/data/drive1/haiyangshi/"
+LOCAL_PREFIX="/data/ssd1/haiyangshi/"
 JAVA_HOME="$HOME/tools/jdk1.8.0"
 HOME_DIR_PATH="$HOME"
-LUSTRE_DIR_PATH="/lustre/$USER"
-NETWORKFS_DIR_PATH="/scratch/$USER"
-RAWNETWORKFS_DIR_PATH="/lustre/${USER}"
+# HAMSTER_LOCAL_DIR & HADOOP_LOCAL_DIR
 LOCAL_DIR_PATH="${LOCAL_PREFIX}"
+# HADOOP_HDFS_PATH
 LOCAL_DRIVE_PATH="${LOCAL_PREFIX}"
 
 # The range shown in nodelist is node[001, 004], but the actual hostname is
@@ -35,6 +34,7 @@ HAMSTER_PROJECTS="HADOOP"
 
 # HADOOP_VERSION="2.7.3"
 HADOOP_VERSION="3.0.0-alpha1"
+# HADOOP_VERSION="3.0.0-alpha1-NOWLAB"
 HADOOP_PACKAGE="hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz"
 
 HIVE_VERSION="2.1.1"
@@ -167,38 +167,20 @@ if [ "${HOME_DIR_PATH}X" != "X" ]
 then
     homedirpathsubst=`echo ${HOME_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
     sed -i -e "s/HOME_DIR_PREFIX=\(.*\)/HOME_DIR_PREFIX=${homedirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
-fi 
-
-if [ "${LUSTRE_DIR_PATH}X" != "X" ]
-then
-    lustredirpathsubst=`echo ${LUSTRE_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/LUSTRE_DIR_PREFIX=\(.*\)/LUSTRE_DIR_PREFIX=${lustredirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
-fi 
-
-if [ "${RAWNETWORKFS_DIR_PATH}X" != "X" ]
-then
-    rawnetworkfsdirpathsubst=`echo ${RAWNETWORKFS_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/RAWNETWORKFS_DIR_PREFIX=\(.*\)/RAWNETWORKFS_DIR_PREFIX=${rawnetworkfsdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
-fi 
-
-if [ "${NETWORKFS_DIR_PATH}X" != "X" ]
-then
-    networkfsdirpathsubst=`echo ${NETWORKFS_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
-    sed -i -e "s/NETWORKFS_DIR_PREFIX=\(.*\)/NETWORKFS_DIR_PREFIX=${networkfsdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
-fi 
+fi
 
 if [ "${LOCAL_DIR_PATH}X" != "X" ]
 then
     localdirpathsubst=`echo ${LOCAL_DIR_PATH} | sed "s/\\//\\\\\\\\\//g"`
     sed -i -e "s/LOCAL_DIR_PREFIX=\(.*\)/LOCAL_DIR_PREFIX=${localdirpathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
-fi 
+fi
 
 
 if [ "${LOCAL_DRIVE_PATH}X" != "X" ]
 then
     localdrivepathsubst=`echo ${LOCAL_DRIVE_PATH} | sed "s/\\//\\\\\\\\\//g"`
     sed -i -e "s/LOCAL_DRIVE_PREFIX=\(.*\)/LOCAL_DRIVE_PREFIX=${localdrivepathsubst}/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
-fi 
+fi
 
 sed -i -e "s/^HAMSTER_PROJECTS=\(.*\)/HAMSTER_PROJECTS=\"${HAMSTER_PROJECTS}\"/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile
 sed -i -e "s/^HAMSTER_SETUP=\(.*\)/HAMSTER_SETUP=\"${HAMSTER_SETUP}\"/" ${HAMSTER_SCRIPTS_HOME}/scripts/submission/hadoop-${HADOOP_VERSION}/Makefile

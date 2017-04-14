@@ -54,7 +54,7 @@
 
 <property>
   <name>fs.local.block.size</name>
-  <value>LOCALBLOCKSIZE</value>
+  <value>HDFSBLOCKSIZE</value>
   <description>Block size to use when writing files to local.</description>
 </property>
 
@@ -80,17 +80,30 @@
 </property>
 <property>
 <name>io.erasurecode.codec.rs-default.rawcoder</name>
-<!--value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactoryLegacy</value-->
-<!--value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactory</value-->
-<value>org.apache.hadoop.io.erasurecode.rawcoder.NativeRSRawErasureCoderFactory</value>
-<!--value>org.apache.hadoop.io.erasurecode.rawcoder.MellanoxRSRawErasureCoderFactory</value-->
+<value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactory</value>
 <description>
 Erasure Coding
 </description>
 </property>
-
-@INTELLUSTRE@
-
-@VIEWFSMOUNT@
-
+<property>
+<name>io.erasurecode.codec.rs-legacy.rawcoder</name>
+<value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactoryLegacy</value>
+<description>
+Erasure Coding
+</description>
+</property>
+<property>
+<name>io.erasurecode.codec.rs-native.rawcoder</name>
+<value>org.apache.hadoop.io.erasurecode.rawcoder.NativeRSRawErasureCoderFactory</value>
+<description>
+Erasure Coding
+</description>
+</property>
+<property>
+<name>io.erasurecode.codec.rs-offload.rawcoder</name>
+<value>org.apache.hadoop.io.erasurecode.rawcoder.MellanoxRSRawErasureCoderFactory</value>
+<description>
+Erasure Coding
+</description>
+</property>
 </configuration>

@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -21,49 +21,12 @@
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-config
 
-Hamster_hdfs_federation_enabled () {
-    if [ "${HDFS_FEDERATION_NAMENODE_COUNT}X" != "X" ] \
-        && [ "${HDFS_FEDERATION_NAMENODE_COUNT}" -gt 1 ]
-    then
-        return 0
-    fi
-    return 1
-}
-
 Hamster_hadoop_filesystem_mode_is_hdfs_type () {
-    if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ] \
-        || [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsoverlustre" ] \
-        || [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsovernetworkfs" ]
+    if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ]
     then
         return 0
     fi
     return 1
-}
-
-Hamster_hadoop_filesystem_mode_is_hdfs_on_network_type () {
-    if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsoverlustre" ] \
-        || [ "${HADOOP_FILESYSTEM_MODE}" == "hdfsovernetworkfs" ]
-    then
-        return 0
-    fi
-    return 1
-}
-
-Hamster_get_networkedhdfspath () {
-    if [ "$HADOOP_FILESYSTEM_MODE" == "hdfsoverlustre" ]
-    then
-        hamster_networkedhdfspath=${HADOOP_HDFSOVERLUSTRE_PATH}
-    elif [ "$HADOOP_FILESYSTEM_MODE" == "hdfsovernetworkfs" ]
-    then
-        hamster_networkedhdfspath=${HADOOP_HDFSOVERNETWORKFS_PATH}
-    else
-        Hamster_output_internal_error "Hamster_get_networkedhdfspath called without HDFS networked path set used" 
-    fi
-    
-    if [ "${HADOOP_PER_JOB_HDFS_PATH}" == "yes" ]
-    then
-        hamster_networkedhdfspath="$hamster_networkedhdfspath/${HAMSTER_JOB_ID}"
-    fi
 }
 
 Hamster_get_hdfs_stored_version_path () {
@@ -80,38 +43,13 @@ Hamster_hadoop_version () {
     echo ${HADOOP_VERSION%%.*}
 }
 
-Hamster_hadoop_type () {
-    echo ${HADOOP_SETUP_TYPE%[0-9]*}
-}
-
-__Hamster_hadoop_is_type () {
-    local type=$1
-    if [ $# -gt 1 ]
+Hamster_hadoop_is () {
+    local version=$1
+    if [ "$(Hamster_hadoop_version)" == "${version}" ]
     then
-        local version=$2
-        if [ "$(Hamster_hadoop_version)" == "${version}" ] \
-            && [ "$(Hamster_hadoop_type)" == "${type}" ]
-        then
-            return 0
-        else
-            return 1
-        fi
+        return 0
     else
-        if [ $(Hamster_hadoop_type) == "${type}" ]
-        then
-            return 0
-        else
-            return 1
-        fi
-    fi
-}
-
-Hamster_hadoop_is_MR () {
-    if [ $# -gt 0 ]
-    then
-        __Hamster_hadoop_is_type MR $1
-    else
-        __Hamster_hadoop_is_type MR
+        return 1
     fi
 }
 

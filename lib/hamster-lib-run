@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -104,7 +104,7 @@ __Hamster_calculate_waittimes_count () {
     local hamsterstartuptimeseconds=`expr ${hamster_startup_time_value} \* 60`
 
     if [ "${hamster_run_total_sleep_wait}" -lt "${hamsterstartuptimeseconds}" ]
-    then  
+    then
         # Could be more dynamic w/ slurm call to determine current
         # run time, but probably is sufficient for this trivial
         # part.  Minimally, have to leave the hamster_run_total_sleep_wait code
@@ -115,7 +115,7 @@ __Hamster_calculate_waittimes_count () {
         then
             waittimeseconds=30
         fi
-        
+
         __hamster_waittimes_count=`expr ${waittimeseconds} \/ 30`
     else
         __hamster_waittimes_count=1
@@ -128,11 +128,11 @@ Hamster_check_service_up () {
 
     # Will set __hamster_waittimes_count
     __Hamster_calculate_waittimes_count
-                
+
     for i in `seq 1 ${__hamster_waittimes_count}`
     do
         $callbackcheck
-        
+
         if [ $? -eq 0 ]
         then
             return 0

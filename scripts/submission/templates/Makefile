@@ -2,23 +2,8 @@
 #
 # HAMSTER_NO_LOCAL_DIR - support HAMSTER_NO_LOCAL_DIR
 #
-# INSERT_INTELLUSTRE - insert intellustre configuration
-#
-# INSERT_HAMSTERNETWORKFS - insert hamsternetworkfs configuration
-#
-# INSERT_HDFSOVERLUSTRE - insert HDFS over Lustre configuration
-#
-# INSERT_HDFSOVERNETWORKFS - insert HDFS over NetworkFS configuration
-#
-# INSERT_HDFS_FEDERATION - insert HDFS federation configuration 
-#
 
 HAMSTER_NO_LOCAL_DIR=n
-INSERT_INTELLUSTRE=n
-INSERT_HAMSTERNETWORKFS=n
-INSERT_HDFSOVERLUSTRE=n
-INSERT_HDFSOVERNETWORKFS=n
-INSERT_HDFS_FEDERATION=n
 
 #
 # Adjust any of these paths for your own local defaults
@@ -26,9 +11,6 @@ INSERT_HDFS_FEDERATION=n
 HAMSTER_SCRIPTS_DIR_PREFIX=$${HOME}
 LOCAL_DIR_PREFIX=/tmp/$${USER}
 HOME_DIR_PREFIX=$${HOME}
-LUSTRE_DIR_PREFIX=/lustre/$${USER}
-NETWORKFS_DIR_PREFIX=/networkfs/$${USER}
-RAWNETWORKFS_DIR_PREFIX=/lustre/$${USER}
 LOCAL_DRIVE_PREFIX=/ssd/$${USER}
 
 HAMSTER_PROJECTS="HADOOP"
@@ -48,9 +30,7 @@ HOSTNAME_SUFFIX=".cluster"
 #
 
 HADOOP_FILESYSTEM_MODE="hdfs"
-HADOOP_DEFAULT_TERASORT_SIZE=50000000
 
-HADOOP_SETUP_TYPE=MR
 HADOOP_VERSION=2.7.3
 HADOOP_DAEMON_HEAP_MAX=102400
 
@@ -87,12 +67,8 @@ define common
 	sed -i -e 's;HAMSTERHOSTNAMESUFFIX;$(HOSTNAME_SUFFIX);g' $(1)
 	sed -i -e 's;LOCALDIRPREFIX;$(LOCAL_DIR_PREFIX);g' $(1)
 	sed -i -e 's;HOMEDIRPREFIX;$(HOME_DIR_PREFIX);g' $(1)
-	sed -i -e 's;LUSTREDIRPREFIX;$(LUSTRE_DIR_PREFIX);g' $(1)
-	sed -i -e 's;NETWORKFSDIRPREFIX;$(NETWORKFS_DIR_PREFIX);g' $(1)
-	sed -i -e 's;RAWFSDIRPREFIX;$(RAWNETWORKFS_DIR_PREFIX);g' $(1)
 	sed -i -e 's;LOCALDRIVEPREFIX;$(LOCAL_DRIVE_PREFIX);g' $(1)
 	sed -i -e 's;HADOOPDIRPREFIX;$(HADOOP_DIR_PREFIX);g' $(1)
-	sed -i -e 's;HADOOPSETUPTYPE;$(HADOOP_SETUP_TYPE);g' $(1)
 	sed -i -e 's;HADOOPDAEMONHEAPMAX;$(HADOOP_DAEMON_HEAP_MAX);g' $(1)
 	sed -i -e 's;HADOOPVERSION;$(HADOOP_VERSION);g' $(1)
 	sed -i -e 's;HIVEVERSION;$(HIVE_VERSION);g' $(1)
@@ -102,27 +78,17 @@ define common
 	sed -i -e 's;JAVAHOME;$(JAVA_HOME);g' $(1)
 	sed -i -e 's;HAMSTERPROJECTS;$(HAMSTER_PROJECTS);g' $(1)
     sed -i -e 's;HADOOPFILESYSTEMMODE;$(HADOOP_FILESYSTEM_MODE);g' $(1)
-	sed -i -e 's;HADOOPDEFAULTTERASORTSIZE;$(HADOOP_DEFAULT_TERASORT_SIZE);g' $(1)
-	if test "${HADOOP_DEFAULT_TERASORT_SIZE}" != "50000000"; then \
-		sed -i -e "s/^# export HADOOP_TERASORT_SIZE/export HADOOP_TERASORT_SIZE/g" $(1); \
-	fi
 	sed -i -e 's;DEFAULTJOBOUTPUTFILE;$(JOBOUTPUTFILE);g' $(1)
 endef
 
 define common-addition
 	sed -i -e "/@HAMSTER_JOB_TYPES@/a @HAMSTER_JOB_TYPES_TEMP@/" $(1);
-	sed -i -e "/@HAMSTER_JOB_TYPES@/{r ../templates/hamster-customizations-job-hadoop" -e "}" $(1);
 	sed -i -e "/@HAMSTER_JOB_TYPES@/d" $(1);
 	sed -i -e "s/@HAMSTER_JOB_TYPES_TEMP@/@HAMSTER_JOB_TYPES@/" $(1);
-	sed -i -e "/@HAMSTER_TESTALL_TYPES@/a @HAMSTER_TESTALL_TYPES_TEMP@/" $(1);
-	sed -i -e "/@HAMSTER_TESTALL_TYPES@/{r ../templates/hamster-customizations-testall-hadoop" -e "}" $(1);
-	sed -i -e "/@HAMSTER_TESTALL_TYPES@/d" $(1);
-	sed -i -e "s/@HAMSTER_TESTALL_TYPES_TEMP@/@HAMSTER_TESTALL_TYPES@/" $(1);
 endef
 
 define common-addition-end
 	sed -i -e "/@HAMSTER_JOB_TYPES@/d" $(1)
-	sed -i -e "/@HAMSTER_TESTALL_TYPES@/d" $(1)
 endef
 
 define common-additions
@@ -136,17 +102,6 @@ define create-templates
 	sed -i -e "/@HAMSTER_NO_LOCAL_DIR@/{r ../templates/hamster-customizations-no-local-dir" -e "d}" hamster-customizations
 
 	cp ../templates/hamster-hadoop-filesystem hamster-hadoop-filesystem
-
-	sed -i -e "/@MODE_INTELLUSTRE@/{r ../templates/hamster-hadoop-filesystem-mode-intellustre" -e "d}" hamster-hadoop-filesystem
-	sed -i -e "/@CONFIG_INTELLUSTRE@/{r ../templates/hamster-hadoop-filesystem-config-intellustre" -e "d}" hamster-hadoop-filesystem
-
-	sed -i -e "/@MODE_HDFSOVERLUSTRE@/{r ../templates/hamster-hadoop-filesystem-mode-hdfsoverlustre" -e "d}" hamster-hadoop-filesystem
-	sed -i -e "/@CONFIG_HDFSOVERLUSTRE@/{r ../templates/hamster-hadoop-filesystem-config-hdfsoverlustre" -e "d}" hamster-hadoop-filesystem
-
-	sed -i -e "/@MODE_HDFSOVERNETWORKFS@/{r ../templates/hamster-hadoop-filesystem-mode-hdfsovernetworkfs" -e "d}" hamster-hadoop-filesystem
-	sed -i -e "/@CONFIG_HDFSOVERNETWORKFS@/{r ../templates/hamster-hadoop-filesystem-config-hdfsovernetworkfs" -e "d}" hamster-hadoop-filesystem
-
-	sed -i -e "/@HDFS_FEDERATION@/{r ../templates/hamster-hadoop-filesystem-hdfs-federation" -e "d}" hamster-hadoop-filesystem
 
 	cp ../templates/hamster-run-job-header hamster-run-job-header
 
@@ -178,16 +133,14 @@ define create-all
 		../templates/hamster-general-configuration \
 		../templates/hamster-hadoop-core \
 		../templates/hamster-hive-core \
-		../templates/hamster-hadoop-job \
 		../templates/hamster-hadoop-job-details \
 		hamster-hadoop-filesystem \
-		../templates/hamster-hadoop-mode-terasort \
 		../templates/hamster-hadoop-mode-details \
 		hamster-run-job-header \
 		../templates/hamster-run-job-$(DIST) > $(HAMSTER)
 	$(call common, ${HAMSTER})
 	$(call common-additions, ${HAMSTER})
-	sed -i -e "s/HAMSTER_JOB_TYPE=\"\(.*\)\"/HAMSTER_JOB_TYPE=\"hadoop\"/" $(HAMSTER)
+	sed -i -e "s/HAMSTER_JOB_TYPE=\"\(.*\)\"/HAMSTER_JOB_TYPE=\"script\"/" $(HAMSTER)
 	for project in "${HAMSTER_SETUP}"; \
 	do \
 		sed -i -e "s/$${project}_SETUP=.*/$${project}_SETUP=yes/" $(HAMSTER); \

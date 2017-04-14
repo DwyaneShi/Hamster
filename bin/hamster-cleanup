@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -24,7 +24,7 @@ source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
 source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 myhostname=$(Hamster_hostname)
-            
+
 if [ "${HADOOP_FILESYSTEM_MODE}" == "hdfs" ]
 then
     if Hamster_am_I_a_hadoop_node

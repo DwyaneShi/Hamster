@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -98,12 +98,12 @@ __Hamster_make_project_local_dirs () {
             Hamster_print YARN_LOCAL_SCRATCHSPACE_DIR
             Hamster_print YARN_PID_DIR
         fi
-    
+
         Hamster_print HADOOP_CONF_DIR
         Hamster_print HADOOP_LOG_DIR
         Hamster_print HADOOP_LOCAL_SCRATCHSPACE_DIR
         Hamster_print HADOOP_PID_DIR
-    
+
         # Hadoop has this completely random other one
         Hamster_vercomp ${HADOOP_VERSION} "3.0.0"
         if [ $? == "2" ]
@@ -141,6 +141,20 @@ __Hamster_make_project_local_dirs () {
         Hamster_print ZOO_LOG_DIR
         Hamster_print ZOOKEEPER_LOG_DIR
     fi
+    if [ "${_project}X" == "MONITORX" ]
+    then
+        MONITOR_LOCAL_JOB_DIR=${PROJECT_LOCAL_JOB_DIR}/monitor
+
+        export MONITOR_LOG_DIR=${MONITOR_LOCAL_JOB_DIR}/log
+
+        if [ "${which}" == "specific" ]
+        then
+            myhostname=$(Hamster_hostname)
+            export MONITOR_LOG_DIR=`echo $MONITOR_LOG_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+        fi
+
+        Hamster_print MONITOR_LOG_DIR
+    fi
 }
 
 Hamster_make_hadoop_local_dirs_unspecified () {
@@ -157,6 +171,8 @@ __Hamster_make_all_local_dirs () {
     do
         __Hamster_make_project_local_dirs $1 ${project}
     done
+    # for monitoring system
+    __Hamster_make_project_local_dirs $1 "MONITOR"
 }
 
 Hamster_make_all_local_dirs_unspecified () {

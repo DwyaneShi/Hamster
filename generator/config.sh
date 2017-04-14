@@ -26,14 +26,11 @@ DEFAULT_HADOOP_FILESYSTEM_MODE="hdfs"
 
 LOCAL_DIR_PATH="/tmp/\${USER}"
 HOME_DIR_PATH="\${HOME}"
-LUSTRE_DIR_PATH="/p/lcratery/\${USER}/testing"
-NETWORKFS_DIR_PATH="/p/lcratery/\${USER}/testing"
-RAWNETWORKFS_DIR_PATH="/p/lcratery/\${USER}/testing"
 SSD_DIR_PATH="/ssd/tmp1/\${USER}"
 
 HADOOP_DIR_PATH="\${HOME}/workspace/bigdata"
+# HADOOP_VERSION=3.0.0-alpha1-NOWLAB
 HADOOP_VERSION=3.0.0-alpha1
-HADOOP_SETUP_TYPE=MR
 
 JAVA_HOME="${HOME}/tools/jdk1.8.0"
 

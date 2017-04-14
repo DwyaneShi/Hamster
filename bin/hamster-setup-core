@@ -1,17 +1,17 @@
 #!/bin/bash
 #############################################################################
 #  Copyright (C) 2016
-#  
+#
 #  Hamster is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
-#  
+#
 #  Hamster is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #  General Public License for more details.
-#  
+#
 #  You should have received a copy of the GNU General Public License
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
@@ -27,7 +27,7 @@ source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 
 #
 # Setup a whole bunch of environment variables and directories
-# 
+#
 
 # Create conf & log dirs node specific
 Hamster_make_all_local_dirs_node_specific
@@ -35,6 +35,8 @@ Hamster_make_all_local_dirs_node_specific
 Hamster_mkdir $HAMSTER_LOCAL_CONF_DIR
 
 Hamster_mkdir $HAMSTER_LOCAL_SCRATCHSPACE_DIR
+
+Hamster_mkdir ${MONITOR_LOG_DIR}
 
 #
 # Setup primary conf, log, and local scratchspace directories for projects
@@ -96,28 +98,11 @@ Hamster_print HAMSTER_NODELIST
 ${hostrangescript} ${hostrangescriptoptions} ${HAMSTER_NODELIST} ${HAMSTER_HOSTNAME_SUFFIX} | head -1 > ${HAMSTER_LOCAL_CONF_DIR}/tmp_masters
 ${hostrangescript} ${hostrangescriptoptions} ${HAMSTER_NODELIST} ${HAMSTER_HOSTNAME_SUFFIX} | tail -n+2 > ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves
 
-if [ "${HADOOP_SETUP}" == "yes" ] \
-    && Hamster_hadoop_filesystem_mode_is_hdfs_type \
-    && Hamster_hdfs_federation_enabled
-then
-    extranamenodecount=`expr ${HDFS_FEDERATION_NAMENODE_COUNT} - 1`
-
-    head -${extranamenodecount} ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves > ${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation
-
-    tail -n+${HDFS_FEDERATION_NAMENODE_COUNT} ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves > ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves_tmp
-
-    cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves_tmp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves
-fi
-
 if [ "${HADOOP_SETUP}" == "yes" ]
 then
     slave_file=$(Hamster_hadoop_slave_or_worker_file)
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_masters ${HADOOP_CONF_DIR}/masters
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves ${HADOOP_CONF_DIR}/${slave_file}
-    if [ -f "${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation" ]
-    then
-        cp ${HAMSTER_LOCAL_CONF_DIR}/namenode_hdfs_federation ${HADOOP_CONF_DIR}/namenode_hdfs_federation
-    fi
 fi
 
 exit 0

@@ -16,24 +16,28 @@
 #  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
 #############################################################################
 
-# This script executes scripts on behalf of the user.  For the most
+# This script sets up configuration files for jobs.  For the most
 # part, it shouldn't be edited.  See job submission files for
 # configuration details.
-
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
 source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
-source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-monitor
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-setup
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
 
-Hamster_make_all_local_dirs_node_specific
+Hamster_start_monitor () {
+    # set time interval to 1min
+    interval=60
 
-if [ "${HAMSTER_PRE_JOB_RUN}X" != "X" ]
-then
-    ${HAMSTER_PRE_JOB_RUN}
-    exit $?
-fi
+    # monitor cpu, mem, network and io
+    sar ${interval} -o ${MONITOR_LOG_DIR}/monitor.out > /dev/null 2>&1 &
+}
 
-# start monitor
-Hamster_start_monitor
-
-exit 0
+Hamster_stop_monitor () {
+    killall -9 sar
+}

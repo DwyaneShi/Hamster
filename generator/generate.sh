@@ -1,7 +1,6 @@
 #!/bin/bash
 
 source generate-default.sh
-source generate-hadoop.sh
 source generate-common.sh
 source config.sh
 
@@ -89,10 +88,6 @@ fi
 if [ "${standardtests}" == "y" ]; then
     GenerateHadoopStandardTests
 fi
-
-# No if checks, may process files created outside of these files
-# e.g. like functionality tests of default tests
-GenerateHadoopPostProcessing
 
 # Seds for all tests
 
