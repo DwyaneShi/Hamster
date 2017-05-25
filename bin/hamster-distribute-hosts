@@ -1,0 +1,38 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script executes post hamster run cleanup.  For the most part, it
+# shouldn't be edited.  See job submission files for configuration
+# details.
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+export HEAD="head"
+export DISTRIBUTE_HOSTS_SHELL="distribute_hosts.sh"
+
+myhostname=$(hostname -s)
+file=.ditribute_hosts_tmp_file_${myhostname}
+echo ${myhostname} > ${file}
+echo "Distributing hosts file"
+scp ${file} ${HEAD}:/tmp/
+ssh -t -t ${HEAD} sudo ${DISTRIBUTE_HOSTS_SHELL} /tmp/${file} ${HAMSTER_SCRIPTS_HOME}/tools/hosts-ib
+ssh ${HEAD} rm /tmp/${file}
+rm ${file}
+
+exit 0

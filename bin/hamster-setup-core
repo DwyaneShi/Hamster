@@ -42,7 +42,7 @@ Hamster_mkdir ${MONITOR_LOG_DIR}
 # Setup primary conf, log, and local scratchspace directories for projects
 #
 
-hamsterprojects="HADOOP HIVE ZOOKEEPER"
+hamsterprojects="HADOOP HIVE ZOOKEEPER SPARK"
 
 for project in ${hamsterprojects}
 do
@@ -52,25 +52,29 @@ do
     piddirvar="${project}_PID_DIR"
     localscratchspacedirvar="${project}_LOCAL_SCRATCHSPACE_DIR"
 
-    if [ "${!confdirvar}X" != "X" ]
+    if [ "${!setupvar}X" == "yesX" ]
     then
-        Hamster_mkdir ${!confdirvar}
+        if [ "${!confdirvar}X" != "X" ]
+        then
+            Hamster_mkdir ${!confdirvar}
+        fi
+
+        if [ "${!logdirvar}X" != "X" ]
+        then
+            Hamster_mkdir ${!logdirvar}
+        fi
+
+        if [ "${!piddirvar}X" != "X" ]
+        then
+            Hamster_mkdir ${!piddirvar}
+        fi
+
+        if [ "${!localscratchspacedirvar}X" != "X" ]
+        then
+            Hamster_mkdir ${!localscratchspacedirvar}
+        fi
     fi
 
-    if [ "${!logdirvar}X" != "X" ]
-    then
-        Hamster_mkdir ${!logdirvar}
-    fi
-
-    if [ "${!piddirvar}X" != "X" ]
-    then
-        Hamster_mkdir ${!piddirvar}
-    fi
-
-    if [ "${!localscratchspacedirvar}X" != "X" ]
-    then
-        Hamster_mkdir ${!localscratchspacedirvar}
-    fi
 done
 
 #
@@ -103,6 +107,11 @@ then
     slave_file=$(Hamster_hadoop_slave_or_worker_file)
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_masters ${HADOOP_CONF_DIR}/masters
     cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves ${HADOOP_CONF_DIR}/${slave_file}
+fi
+
+if [ "${SPARK_SETUP}" == "yes" ]
+then
+    cp ${HAMSTER_LOCAL_CONF_DIR}/tmp_slaves ${SPARK_CONF_DIR}/slaves
 fi
 
 exit 0

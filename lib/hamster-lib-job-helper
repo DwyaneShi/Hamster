@@ -1,0 +1,50 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-config
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+Hamster_yarn_status () {
+    local application_id=$1
+    if [ "${HADOOP_HOME}X}" == "X" ]
+    then
+        Hamster_echo "ERROR: HADOOP_HOME is not set"
+    else
+        ${HADOOP_HOME}/bin/yarn application -status ${application_id}
+    fi
+}
+
+Hamster_spark_submit () {
+    local command=$1
+    if [ "${SPARK_HOME}X" == "X" ]
+    then
+        spark_submit_cmd="spark-submit"
+    else
+        spark_submit_cmd="${SPARK_HOME}/bin/spark-submit"
+    fi
+    local cmd="${spark_submit_cmd} ${command}"
+    Hamster_echo "${cmd}"
+    { local output=$(time ${cmd} 2>&1 1>&3-); } 3>&1
+    echo ${output}
+    application_id=$(python -c "import re; print(re.search(r'(?<=Submitted application )application_\S+', \"\"\"${output:0:9999}\"\"\", re.M).group(0))")
+    if [ $? -eq 0 ]
+    then
+        Hamster_yarn_status ${application_id}
+    fi
+}

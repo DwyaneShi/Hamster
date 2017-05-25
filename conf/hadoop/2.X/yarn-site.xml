@@ -11,8 +11,7 @@
 
 <property>
   <description>The address of the scheduler interface.</description>
-  <name>yarn.resourcemanager.scheduler.address</name>
-  <value>HADOOP_MASTER_HOST:YARNRESOURCEMANAGERSCHEDULERADDRESS</value>
+  <name>yarn.resourcemanager.scheduler.address</name> <value>HADOOP_MASTER_HOST:YARNRESOURCEMANAGERSCHEDULERADDRESS</value>
 </property>
 
 <property>
@@ -166,6 +165,20 @@
 <property>
   <name>yarn.scheduler.capacity.root.default.acl_administer_queue</name>
   <value>YARNDEFAULTUSER</value>
+</property>
+
+<property>
+  <name>yarn.nodemanager.vmem-check-enabled</name>
+  <value>false</value>
+</property>
+ <property>
+  <name>yarn.nodemanager.vmem-pmem-ratio</name>
+  <value>4</value>
+  <description>Ratio between virtual memory to physical memory when setting memory limits for containers</description>
+</property>
+<property>
+  <name>yarn.log-aggregation-enable</name>
+  <value>false</value>
 </property>
 
 </configuration>

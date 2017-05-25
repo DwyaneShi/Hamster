@@ -427,6 +427,10 @@ else
     yarnlocalstoredir="\$\{hadoop.tmp.dir\}\/yarn-nm"
 fi
 
+###### TODO
+# speficy yarnlocalstoredir
+# yarnlocalstoredir="\/scratch\/haiyangshi\/yarn-nm\/$(hostname -s)"
+
 if Hamster_hadoop_filesystem_mode_is_hdfs_type
 then
     # If HDFS would be stored in HDFS, so pick a better path

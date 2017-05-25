@@ -13,8 +13,8 @@ LOCAL_DIR_PREFIX=/tmp/$${USER}
 HOME_DIR_PREFIX=$${HOME}
 LOCAL_DRIVE_PREFIX=/ssd/$${USER}
 
-HAMSTER_PROJECTS="HADOOP"
-HAMSTER_SETUP="HADOOP"
+HAMSTER_PROJECTS="HADOOP SPARK"
+HAMSTER_SETUP="HADOOP SPARK"
 
 HADOOP_DIR_PREFIX=$${HOME}
 
@@ -38,6 +38,7 @@ HIVE_VERSION=2.1.1
 ZOOKEEPER_VERSION=3.4.9
 ZOOKEEPER_DATADIR=/tmp/datadir
 ZOOKEEPER_PORT=2231
+SPARK_VERSION=2.1.0
 
 #
 # If LOCAL_REQUIREMENTS is set to 'y', whatever is in the file pointed
@@ -75,6 +76,7 @@ define common
 	sed -i -e 's;ZOOKEEPERVERSION;$(ZOOKEEPER_VERSION);g' $(1)
 	sed -i -e 's;ZOOKEEPERDATADIR;$(ZOOKEEPER_DATADIR);g' $(1)
 	sed -i -e 's;ZOOKEEPERPORT;$(ZOOKEEPER_PORT);g' $(1)
+	sed -i -e 's;SPARKVERSION;$(SPARK_VERSION);g' $(1)
 	sed -i -e 's;JAVAHOME;$(JAVA_HOME);g' $(1)
 	sed -i -e 's;HAMSTERPROJECTS;$(HAMSTER_PROJECTS);g' $(1)
     sed -i -e 's;HADOOPFILESYSTEMMODE;$(HADOOP_FILESYSTEM_MODE);g' $(1)
@@ -133,9 +135,11 @@ define create-all
 		../templates/hamster-general-configuration \
 		../templates/hamster-hadoop-core \
 		../templates/hamster-hive-core \
+		../templates/hamster-spark-core \
 		../templates/hamster-hadoop-job-details \
 		hamster-hadoop-filesystem \
 		../templates/hamster-hadoop-mode-details \
+		../templates/hamster-distribute-hosts \
 		hamster-run-job-header \
 		../templates/hamster-run-job-$(DIST) > $(HAMSTER)
 	$(call common, ${HAMSTER})

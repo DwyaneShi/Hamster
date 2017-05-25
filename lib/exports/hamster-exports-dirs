@@ -141,6 +141,20 @@ __Hamster_make_project_local_dirs () {
         Hamster_print ZOO_LOG_DIR
         Hamster_print ZOOKEEPER_LOG_DIR
     fi
+    if [ "${_project}X" == "SPARKX" ] && [ "${SPARK_SETUP}" == "yes" ]
+    then
+        SPARK_LOCAL_JOB_DIR=${PROJECT_LOCAL_JOB_DIR}/spark
+
+        export SPARK_CONF_DIR=${SPARK_LOCAL_JOB_DIR}/conf
+
+        if [ "${which}" == "specific" ]
+        then
+            myhostname=$(Hamster_hostname)
+            export SPARK_CONF_DIR=`echo $SPARK_CONF_DIR | sed "s/HAMSTERHOSTNAMESUBSTITUTION/${myhostname}/g"`
+        fi
+
+        Hamster_print SPARK_CONF_DIR
+    fi
     if [ "${_project}X" == "MONITORX" ]
     then
         MONITOR_LOCAL_JOB_DIR=${PROJECT_LOCAL_JOB_DIR}/monitor

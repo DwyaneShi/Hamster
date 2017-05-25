@@ -4,7 +4,7 @@
 
 submissiontype=sbatch-srun
 
-sbatchsrunpartition=batch-storage
+sbatchsrunpartition=batch-gpu
 
 # Test config
 #
@@ -30,9 +30,9 @@ SSD_DIR_PATH="/ssd/tmp1/\${USER}"
 
 HADOOP_DIR_PATH="\${HOME}/workspace/bigdata"
 # HADOOP_VERSION=3.0.0-alpha1-NOWLAB
-HADOOP_VERSION=3.0.0-alpha1
+HADOOP_VERSION=2.6.5
 
-JAVA_HOME="${HOME}/tools/jdk1.8.0"
+JAVA_HOME="${HOME}/tools/jdk1.7.0"
 
 DEFAULT_LOCAL_REQUIREMENTS=n
 DEFAULT_LOCAL_REQUIREMENTS_FILE=/tmp/mylocal

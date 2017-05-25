@@ -1,0 +1,76 @@
+#!/bin/bash
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+# This script sets up configuration files for jobs.  For the most
+# part, it shouldn't be edited.  See job submission files for
+# configuration details.
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-submission-type
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-dirs
+source ${HAMSTER_SCRIPTS_HOME}/lib/exports/hamster-exports-user
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-defaults
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-node-identification
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-setup
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+
+if [ "${SPARK_SETUP}X" != "yesX" ]
+then
+    exit 0
+fi
+
+# hadoopnoderank set if succeed
+if ! Hamster_am_I_a_hadoop_node
+then
+    Hamster_echo "I am not a Hadoop node"
+    exit 0
+fi
+
+#
+# Get config files for setup
+#
+
+# Sets hamster_openfilescount
+Hamster_calculate_openfiles ${HADOOP_SLAVE_COUNT}
+# Sets hamster_userprocessescount
+Hamster_calculate_userprocesses ${HADOOP_SLAVE_COUNT}
+
+# Hamster_find_conffile will set the 'pre' filenames
+
+Hamster_find_conffile "Spark" ${SPARK_CONF_FILES:-""} "spark-env.sh" "pre_sparkenvsh"
+Hamster_find_conffile "Spark" ${SPARK_CONF_FILES:-""} "spark-defaults.conf" "pre_sparkconf"
+
+post_sparkenvsh=${SPARK_CONF_DIR}/spark-env.sh
+post_sparkconf=${SPARK_CONF_DIR}/spark-defaults.conf
+
+#
+# Setup Spark configuration files and environment files
+#
+
+cp ${pre_sparkenvsh} ${post_sparkenvsh}
+cp ${pre_sparkconf} ${post_sparkconf}
+
+sed -i \
+    -e "s/HADOOP_MASTER_HOST/${HADOOP_MASTER_NODE}/g" \
+    ${post_sparkenvsh}
+
+echo "ulimit -n ${hamster_openfilescount}" >> ${post_sparkenvsh}
+echo "ulimit -u ${hamster_userprocessescount}" >> ${post_sparkenvsh}
+
+exit 0

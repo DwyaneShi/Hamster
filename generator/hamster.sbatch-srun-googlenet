@@ -1,0 +1,581 @@
+#!/bin/sh
+#############################################################################
+#  Copyright (C) 2016
+#
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+############################################################################
+# SLURM Customizations
+############################################################################
+
+# Node count.  Node count should include one node for the
+# head/management/master node.  For example, if you want 8 compute
+# nodes to process data, specify 9 nodes below.
+#
+
+#SBATCH --nodes=3
+#SBATCH --output="slurm-%j.out"
+
+# Note defaults of HAMSTER_STARTUP_TIME & HAMSTER_SHUTDOWN_TIME, this
+# timelimit should be a fair amount larger than them combined.
+#SBATCH --time=2-00:00:00
+
+# Job name.  This will be used in naming directories for the job.
+#SBATCH --job-name=GoogLeNet
+
+# Partition to launch job in
+#SBATCH --partition=batch-gpu
+
+## SLURM Values
+
+#SBATCH --ntasks-per-node=1
+#SBATCH --exclusive
+#SBATCH --no-kill
+
+export HEAD="head"
+export DISTRIBUTE_HOSTS_SHELL="/usr/sbin/distribute_hosts.sh"
+export HAMSTER_DISTRIBUTING_HOSTS_ENABLED="true"
+export HAMSTER_SUBMISSION_TYPE="sbatchsrun"
+############################################################################
+# Hamster Configurations
+############################################################################
+#
+# If Hamster_verbose is set to true, environment variables will be print out
+# default value is false
+export Hamster_verbose=false
+
+# Directory your launching scripts/files are stored
+#
+# Normally an NFS mount, someplace hamster can be reached on all nodes.
+export HAMSTER_SCRIPTS_HOME="/home/shi.876/workspace/hamster"
+export HAMSTER_HOSTNAME_SUFFIX="-ib.cluster"
+
+# If your cluster does not have any node-local storage available (or
+# an extremely small amount of it) for small config files, log files,
+# and other temporary scratch space, set the following to yes and see
+# the README for patching requirements to projects.
+#
+# This option applies to all LOCAL_DIR environment variables, such as
+# HAMSTER_LOCAL_DIR, HADOOP_LOCAL_DIR, HBASE_LOCAL_DIR, etc.
+#
+# Defaults to no.
+#
+# export HAMSTER_NO_LOCAL_DIR="yes"
+
+# Path to store data local to each cluster node, typically something
+# in /tmp.  This will store local conf files and log files for your
+# job.  If local scratch space is not available, consider using the
+# HAMSTER_NO_LOCAL_DIR option.  See README for more details.
+#
+export HAMSTER_LOCAL_DIR="/tmp/shi.876/hamster"
+
+# Hamster job type
+#
+#
+# "script" - Run an arbitraty script, as specified by HAMSTER_SCRIPT_PATH.
+#
+# "interactive" - manually interact with job run.
+#
+export HAMSTER_JOB_TYPE="script"
+# export HAMSTER_SCRIPT_PATH="${HAMSTER_SCRIPTS_HOME}/scripts/job/caffe-on-spark-jobs/caffe-on-spark-cifar10"
+# export HAMSTER_SCRIPT_PATH="${HAMSTER_SCRIPTS_HOME}/scripts/job/caffe-on-spark-jobs/caffe-on-spark-mnist"
+export HAMSTER_SCRIPT_PATH="${HAMSTER_SCRIPTS_HOME}/scripts/job/caffe-on-spark-jobs/caffe-on-spark-googlenet"
+# export HAMSTER_SCRIPT_PATH="${HAMSTER_SCRIPTS_HOME}/scripts/job/job-run-scripts/hamster-job-hadoop-terasort"
+
+# Specify script to execute for "script" mode in HAMSTER_JOB_TYPE
+#
+# export HAMSTER_SCRIPT_PATH="${HOME}/my-job-script"
+
+# Specify arguments for script specified in HAMSTER_SCRIPT_PATH
+#
+# Note that many Hamster generated environment variables are not
+# generated until the job has launched.  You won't be able to use them
+# here.
+#
+export HAMSTER_SCRIPT_ARGS=""
+
+# Specify script startup / shutdown time window
+#
+# Specifies the amount of time to give startup / shutdown activities a
+# chance to succeed before Hamster will give up (or in the case of
+# shutdown, when the resource manager/scheduler may kill the running
+# job).  Defaults to 30 minutes for startup, 30 minutes for shutdown.
+#
+# The startup time in particular may need to be increased if you have
+# a large amount of data.  As an example, HDFS may need to spend a
+# significant amount of time determine all of the blocks in HDFS
+# before leaving safemode.
+#
+# The stop time in particular may need to be increased if you have a
+# large amount of cleanup to be done.  HDFS will save its NameSpace
+# before shutting down.
+#
+# The startup & shutdown window must together be smaller or equal than the
+# SBATCH_TIMELIMIT specified above.
+#
+# HAMSTER_STARTUP_TIME and HAMSTER_SHUTDOWN_TIME at minimum must be 5
+# minutes.  If HAMSTER_POST_JOB_RUN is specified below,
+# HAMSTER_SHUTDOWN_TIME must be at minimum 10 minutes.
+#
+export HAMSTER_STARTUP_TIME=10
+export HAMSTER_SHUTDOWN_TIME=15
+
+# Convenience Scripts
+#
+# Specify script to be executed to before / after your job.  It is run
+# on all nodes.
+#
+# Typically the pre-job script is used to set something up or get
+# debugging info.  It can also be used to determine if system
+# conditions meet the expectations of your job.  The primary job
+# running script (hamster-run) will not be executed if the
+# HAMSTER_PRE_JOB_RUN exits with a non-zero exit code.
+#
+# The post-job script is typically used for cleaning up something or
+# gathering info (such as logs) for post-debugging/analysis.  If it is
+# set, HAMSTER_SHUTDOWN_TIME above must be > 5.
+#
+# See example hamster-example-pre-job-script and
+# hamster-example-post-job-script for ideas of what you can do w/ these
+# scripts
+#
+# A number of convenient scripts are available in the
+# ${HAMSTER_SCRIPTS_HOME}/scripts directory.
+#
+# export HAMSTER_PRE_JOB_RUN="${HAMSTER_SCRIPTS_HOME}/scripts/job/pre-job-run-scripts/my-pre-job-script"
+export HAMSTER_POST_JOB_RUN="/home/shi.876/workspace/hamster/scripts/job/post-job-run-scripts/gather-config-files-and-logs-script.sh"
+
+# Environment Variable Script
+#
+# When working with Hamster interactively by logging into the master
+# node of your job allocation, many environment variables may need to
+# be set.  For example, environment variables for config file
+# directories (e.g. HADOOP_CONF_DIR, etc.) and home directories 
+# (e.g. HADOOP_HOME, etc.) and more general environment variables 
+# (e.g. JAVA_HOME) may need to be set before you begin interacting 
+# with your big data setup.
+#
+# The standard job output from Hamster provides instructions on all the
+# environment variables typically needed to interact with your job.
+# However, this can be tedious if done by hand.
+#
+# If the environment variable specified below is set, Hamster will
+# create the file and put into it every environment variable that
+# would be useful when running your job interactively.  That way, it
+# can be sourced easily if you will be running your job interactively.
+# It can also be loaded or used by other job scripts.
+#
+# export HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT="${HOME}/my-job-env"
+
+# Environment Variable Shell Type
+#
+# Hamster outputs environment variables in help output and
+# HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT based on your SHELL environment
+# variable.
+#
+# If you would like to output in a different shell type (perhaps you
+# have programmed scripts in a different shell), specify that shell
+# here.
+#
+# export HAMSTER_ENVIRONMENT_VARIABLE_SCRIPT_SHELL="/bin/bash"
+############################################################################
+# General Configuration
+############################################################################
+
+# Necessary for most projects
+# export JAVA_HOME="/home/shi.876/tools/jdk1.8.0"
+export JAVA_HOME="/home/shi.876/tools/jdk1.7.0"
+export HAMSTER_PROJECTS="HADOOP SPARK"
+############################################################################
+# Hadoop Core Configurations
+############################################################################
+
+# Should Hadoop be run
+#
+# Specify yes or no.  Defaults to no.
+#
+export HADOOP_SETUP=yes
+
+# Version
+#
+export HADOOP_VERSION="2.6.5"
+
+# Path to your Hadoop build/binaries
+#
+# This should be accessible on all nodes in your allocation. Typically
+# this is in an NFS mount.
+#
+export HADOOP_HOME="/home/shi.876/workspace/bigdata/hadoop-${HADOOP_VERSION}"
+
+# Path to store data local to each cluster node, typically something
+# in /tmp.  This will store local conf files for your
+# job.  If local scratch space is not available, consider using the
+# HAMSTER_NO_LOCAL_DIR option.  See README for more details.
+#
+# This will not be used for storing intermediate files or
+# distributed cache files.  See HADOOP_LOCALSTORE above for that.
+#
+export HADOOP_LOCAL_DIR="/tmp/shi.876/hadoop"
+
+# Directory where alternate Hadoop configuration templates are stored
+#
+# If you wish to tweak the configuration files used by Hamster, set
+# HADOOP_CONF_FILES below, copy configuration templates from
+# $HAMSTER_SCRIPTS_HOME/conf into HADOOP_CONF_FILES, and modify
+# as you desire.  Hamster will still use configuration files in
+# $HAMSTER_SCRIPTS_HOME/conf if of the files it needs are not
+# found in HADOOP_CONF_FILES.
+#
+# export HADOOP_CONF_FILES="${HOME}/myconf"
+
+# Daemon Heap Max
+#
+# Heap maximum for Hadoop daemons (i.e. Resource Manger, NodeManager,
+# DataNode, History Server, etc.), specified in megs.  Special case
+# for Namenode, see below.
+#
+# If not specified, defaults to Hadoop default of 1000
+#
+# May need to be increased if you are scaling large, get OutofMemory
+# errors, or perhaps have a lot of cores on a node.
+#
+export HADOOP_DAEMON_HEAP_MAX="102400"
+
+# Daemon Namenode Heap Max
+#
+# Heap maximum for Hadoop Namenode daemons specified in megs.
+#
+# If not specified, defaults to HADOOP_DAEMON_HEAP_MAX above.
+#
+# Unlike most Hadoop daemons, namenode may need more memory if there
+# are a very large number of files in your HDFS setup.  A general rule
+# of thumb is a 1G heap for each 100T of data.
+#
+# export HADOOP_NAMENODE_DAEMON_HEAP_MAX=2000
+
+# Environment Extra
+#
+# Specify extra environment information that should be passed into
+# Hadoop.  This file will simply be appended into the hadoop-env.sh
+# and (if appropriate) yarn-env.sh.
+#
+# By default, a reasonable estimate for max user processes and open
+# file descriptors will be calculated and put into hadoop-env.sh and
+# (if appropriate) yarn-env.sh.  However, it's always possible they may
+# need to be set differently. Everyone's cluster/situation can be
+# slightly different.
+#
+# See the example example-environment-extra extra for examples on
+# what you can/should do with adding extra environment settings.
+#
+# export HADOOP_ENVIRONMENT_EXTRA_PATH="${HOME}/hadoop-my-environment"
+
+############################################################################
+# HIVE CORE
+############################################################################
+
+export HIVE_VERSION="2.1.1"
+export ZOOKEEPER_VERSION="3.4.9"
+export ZOOKEEPER_DATADIR="/home/shi.876/datadir"
+export ZOOKEEPER_PORT="22231"
+export HIVE_SETUP=n
+export ZOOKEEPER_SETUP=n
+export HIVE_HOME="/home/shi.876/workspace/bigdata/apache-hive-${HIVE_VERSION}-bin"
+export ZOOKEEPER_HOME="/home/shi.876/workspace/bigdata/zookeeper-${ZOOKEEPER_VERSION}"
+export ZOOBINDIR="${ZOOKEEPER_HOME}/bin"
+############################################################################
+# SPARK CORE
+############################################################################
+
+export SPARK_VERSION="1.6.3"
+export SPARK_SETUP=yes
+export SPARK_HOME="/home/shi.876/workspace/bigdata/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION%.*}"
+# Tasks per Node
+#
+# If not specified, a reasonable estimate will be calculated based on
+# number of CPUs on the system.
+#
+# If running Hbase (or other Big Data software) with Hadoop MapReduce,
+# be aware of the number of tasks and the amount of memory that may be
+# needed by other software.
+#
+# export HADOOP_MAX_TASKS_PER_NODE=8
+
+# Default Map tasks for Job
+#
+# If not specified, defaults to HADOOP_MAX_TASKS_PER_NODE * compute
+# nodes.
+#
+# If running Hbase (or other Big Data software) with Hadoop MapReduce,
+# be aware of the number of tasks and the amount of memory that may be
+# needed by other software.
+#
+# export HADOOP_DEFAULT_MAP_TASKS=8
+
+# Default Reduce tasks for Job
+#
+# If not specified, defaults to # compute nodes (i.e. 1 reducer per
+# node)
+#
+# If running Hbase (or other Big Data software) with Hadoop MapReduce,
+# be aware of the number of tasks and the amount of memory that may be
+# needed by other software.
+#
+# export HADOOP_DEFAULT_REDUCE_TASKS=8
+
+# Max Map tasks for Task Tracker
+#
+# If not specified, defaults to HADOOP_MAX_TASKS_PER_NODE
+#
+# If running Hbase (or other Big Data software) with Hadoop MapReduce,
+# be aware of the number of tasks and the amount of memory that may be
+# needed by other software.
+#
+# export HADOOP_MAX_MAP_TASKS=8
+
+# Max Reduce tasks for Task Tracker
+#
+# If not specified, defaults to HADOOP_MAX_TASKS_PER_NODE
+#
+# If running Hbase (or other Big Data software) with Hadoop MapReduce,
+# be aware of the number of tasks and the amount of memory that may be
+# needed by other software.
+#
+# export HADOOP_MAX_REDUCE_TASKS=8
+
+# Heap size for JVM
+#
+# Specified in M.  If not specified, a reasonable estimate will be
+# calculated based on total memory available and number of CPUs on the
+# system.
+#
+# HADOOP_CHILD_MAP_HEAPSIZE and HADOOP_CHILD_REDUCE_HEAPSIZE are for
+# Yarn
+#
+# If HADOOP_CHILD_MAP_HEAPSIZE is not specified, it is assumed to be
+# HADOOP_CHILD_HEAPSIZE.
+#
+# If HADOOP_CHILD_REDUCE_HEAPSIZE is not specified, it is assumed to
+# be 2X the HADOOP_CHILD_MAP_HEAPSIZE.
+#
+# If running Hbase (or other Big Data software) with Hadoop MapReduce,
+# be aware of the number of tasks and the amount of memory that may be
+# needed by other software.
+#
+# export HADOOP_CHILD_HEAPSIZE=2048
+# export HADOOP_CHILD_MAP_HEAPSIZE=2048
+# export HADOOP_CHILD_REDUCE_HEAPSIZE=4096
+
+# Container Buffer
+#
+# Specify the amount of overhead each Yarn container will have over
+# the heap size.  Specified in M.  If not specified, a reasonable
+# estimate will be calculated based on total memory available.
+#
+# export HADOOP_CHILD_MAP_CONTAINER_BUFFER=256
+# export HADOOP_CHILD_REDUCE_CONTAINER_BUFFER=512
+
+# Mapreduce Slowstart, indicating percent of maps that should complete
+# before reducers begin.
+#
+# If not specified, defaults to 0.05
+#
+# export HADOOP_MAPREDUCE_SLOWSTART=0.05
+
+# Container Memory
+#
+# Memory on compute nodes for containers.  Typically "nice-chunk" less
+# than actual memory on machine, b/c machine needs memory for its own
+# needs (kernel, daemons, etc.).  Specified in megs.
+#
+# If not specified, a reasonable estimate will be calculated based on
+# total memory on the system.
+#
+# export YARN_RESOURCE_MEMORY=32768
+
+# Compression
+#
+# Should compression of outputs and intermediate data be enabled.
+# Specify yes or no.  Defaults to no.
+#
+# Effectively, is time spend compressing data going to save you time
+# on I/O.  Sometimes yes, sometimes no.
+#
+# export HADOOP_COMPRESSION=yes
+
+# IO Sort Factors + MB
+#
+# The number of streams of files to sort while reducing and the memory
+# amount to use while sorting.  This is a quite advanced mechanism
+# taking into account many factors.  If not specified, some reasonable
+# number will be calculated.
+#
+# export HADOOP_IO_SORT_FACTOR=10
+# export HADOOP_IO_SORT_MB=100
+
+# Parallel Copies
+#
+# The default number of parallel transfers run by reduce during the
+# copy(shuffle) phase.  If not specified, some reasonable number will
+# be calculated.
+# export HADOOP_PARALLEL_COPIES=10
+
+############################################################################
+# Hadoop Filesystem Mode Configurations
+############################################################################
+
+# Set how the filesystem should be setup
+#
+# "hdfs" - Normal straight up HDFS if you have local disk in your
+#          cluster.  This option is primarily for benchmarking and
+#          caching, but probably shouldn't be used in the general case.
+#
+#          Be careful running this in a cluster environment.  The next
+#          time you execute your job, if a different set of nodes are
+#          allocated to you, the HDFS data you wrote from a previous
+#          job may not be there.  Specifying specific nodes to use in
+#          your job submission (e.g. --nodelist in sbatch) may be a
+#          way to alleviate this.
+#
+#          User must set HADOOP_HDFS_PATH below.
+#
+
+export HADOOP_FILESYSTEM_MODE="hdfs"
+
+# HDFS Replication
+#
+# This is used with HADOOP_FILESYSTEM_MODE="hdfs"
+#
+# HDFS commonly uses 3. If not specified, defaults to 3
+#
+export HADOOP_HDFS_REPLICATION=3
+
+# Path for HDFS when using local disk
+#
+# This is used with HADOOP_FILESYSTEM_MODE="hdfs"
+#
+# If you want to specify multiple paths (such as multiple drives),
+# make them comma separated (e.g. /dir1,/dir2,/dir3).  The multiple
+# paths will be used for local intermediate data and HDFS.  The first
+# path will also store daemon data, such as namenode or jobtracker
+# data.
+#
+export HADOOP_HDFS_PATH="/tmp/haiyangshi/hdfs"
+
+# HDFS cleanup
+#
+# After your job has completed, if HADOOP_HDFS_PATH_CLEAR is set to
+# yes, Hamster will do a rm -rf on HADOOP_HDFS_PATH.  
+#
+# This is particularly useful when doing normal HDFS on local storage.
+# On your next job run, you may not be able to get the nodes you want
+# on your next run.  So you may want to clean up your work before the
+# next user uses the node.
+#
+# export HADOOP_HDFS_PATH_CLEAR="yes"
+
+# HDFS Block Size
+#
+# Commonly 134217728, 268435456, 536870912 (i.e. 128m, 256m, 512m)
+#
+# If not specified, defaults to 134217728
+#
+# export HADOOP_HDFS_BLOCKSIZE=134217728
+
+# If you have a local SSD or NVRAM, performance may be better to store
+# intermediate data on it. If the below environment variable is specified, local
+# intermediate data will be stored in the specified directory.
+#
+# Be wary, local SSDs/NVRAM stores may have less space than HDDs or
+# networked file systems.  It can be easy to run out of space.
+#
+# If you want to specify multiple paths (such as multiple drives),
+# make them comma separated (e.g. /dir1,/dir2,/dir3).  The multiple
+# paths will be used for local intermediate data.
+#
+# export HADOOP_LOCALSTORE="/data/ssd1/haiyangshi//localstore/"
+
+# HADOOP_LOCALSTORE_CLEAR 
+#
+# After your job has completed, if HADOOP_LOCALSTORE_CLEAR is set to
+# yes, Hamster will do a rm -rf on all directories in
+# HADOOP_LOCALSTORE.  This is particularly useful if the localstore
+# directory is on local storage and you want to clean up your work
+# before the next user uses the node.
+#
+# export HADOOP_LOCALSTORE_CLEAR="yes"
+
+# Option to use unique locations per job to store hdfs data
+#
+# export HADOOP_PER_JOB_HDFS_PATH="yes"
+############################################################################
+# Hadoop Script Configurations
+############################################################################
+
+# Specify script to execute for "script" mode
+#
+# See examples/hadoop-example-job-script for example of what to put in
+# the script.
+#
+# export HADOOP_SCRIPT_PATH="${HOME}/my-job-script"
+
+# Specify arguments for script specified in HADOOP_SCRIPT_PATH
+#
+# Note that many Hamster generated environment variables, such as
+# HADOOP_MASTER_NODE, are not generated until the job has launched.
+# You won't be able to use them here.
+#
+# export HADOOP_SCRIPT_ARGS="" 
+############################################################################
+# Run Job
+############################################################################
+
+if [ "${HAMSTER_DISTRIBUTING_HOSTS_ENABLED}X" == "trueX" ]
+then
+    srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-distribute-hosts
+    if [ $? -ne 0 ]
+    then
+        exit 1
+    fi
+fi
+
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-check-inputs
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-setup-core
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-setup-projects
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-setup-post
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-pre-run
+if [ $? -ne 0 ]
+then
+    exit 1
+fi
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-run
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-cleanup
+srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-post-run

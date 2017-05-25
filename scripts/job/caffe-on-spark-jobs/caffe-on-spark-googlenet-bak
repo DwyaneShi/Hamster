@@ -1,0 +1,69 @@
+#############################################################################
+#  Copyright (C) 2016
+#  
+#  Hamster is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  Hamster is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#  General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with Hamster.  If not, see <http://www.gnu.org/licenses/>.
+#############################################################################
+
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-hadoop-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-job-helper
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-log
+source ${HAMSTER_SCRIPTS_HOME}/lib/hamster-lib-paths
+source ${HAMSTER_SCRIPTS_HOME}/util/hamster-io
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/shi.876/workspace/bigdata/hadoop-${HADOOP_VERSION}/lib/native:/home/shi.876/lib
+export CAFFE_ON_SPARK=${HOME}/caffe_tools/CaffeOnSpark
+export SPARK_HOME=${HOME}/workspace/bigdata/spark-1.6.3-bin-hadoop2.6
+export CUDA_HOME="/opt/cuda/8.0"
+export MKL_HOME="/opt/intel/mkl"
+export SPARK_WORKER_INSTANCES=2
+export DEVICES=1
+# export CONNECTION="infiniband"
+export CONNECTION="ethernet"
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CAFFE_ON_SPARK}/caffe-public/distribute/lib:${CAFFE_ON_SPARK}/caffe-distri/distribute/lib
+LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CUDA_HOME}/lib:${CUDA_HOME}/lib64:${MKL_HOME}/lib/intel64/
+
+prefix="/projects/machine_learning"
+dataset_dir="${prefix}/image_dataset"
+output_dir="${prefix}/output"
+model_dir="${output_dir}/googlenet.model"
+result_dir="${output_dir}/googlenet_features_result"
+
+Hamster_echo "*******************************************************"
+Hamster_echo "* CaffeOnSpark GoogLeNet"
+Hamster_echo "*******************************************************"
+# generate dataset
+# init
+base_dir=/scratch/shi.876/ImageNet
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -rm -r -f -skipTrash ${dataset_dir} ${output_dir}"
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -mkdir -p ${dataset_dir} ${output_dir}"
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -put -f ${base_dir}/LMDB/10/* ${dataset_dir}"
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -ls ${dataset_dir}"
+
+# submit job
+# will hang there if cores > 1
+Hamster_spark_submit "--master yarn --deploy-mode cluster --num-executors ${SPARK_WORKER_INSTANCES} \
+    --executor-memory 90g \
+    --files ${CAFFE_ON_SPARK}/data/googlenet_quick_solver.prototxt,${CAFFE_ON_SPARK}/data/googlenet_train_val.prototxt \
+    --conf spark.driver.extraLibraryPath="${LD_LIBRARY_PATH}" \
+    --conf spark.executorEnv.LD_LIBRARY_PATH="${LD_LIBRARY_PATH}" \
+    --class com.yahoo.ml.caffe.CaffeOnSpark  \
+    ${CAFFE_ON_SPARK}/caffe-grid/target/caffe-grid-0.1-SNAPSHOT-jar-with-dependencies.jar \
+    -clusterSize ${SPARK_WORKER_INSTANCES} -train -features accuracy,loss -label label -conf googlenet_quick_solver.prototxt \
+    -devices ${DEVICES} -connection ${CONNECTION} -model ${model_dir} -output ${result_dir}"
+
+# print output
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -ls ${model_dir}"
+Hamster_command "${HADOOP_HOME}/${hadoopcmdprefix}/hadoop fs -cat ${result_dir}/*"
+
+exit 0

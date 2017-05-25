@@ -1,0 +1,14 @@
+############################################################################
+# Distribute Hosts
+############################################################################
+
+export HAMSTER_DISTRIBUTING_HOSTS_ENABLED="true"
+
+if [ "${HAMSTER_DISTRIBUTING_HOSTS_ENABLED}X" == "trueX" ]
+then
+    srun --no-kill -W 0 $HAMSTER_SCRIPTS_HOME/bin/hamster-distribute-hosts
+    if [ $? -ne 0 ]
+    then
+        exit 1
+    fi
+fi

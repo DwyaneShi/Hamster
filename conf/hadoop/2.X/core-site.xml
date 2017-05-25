@@ -78,4 +78,17 @@
     browsing files).
   </description>
 </property>
+
+<property>
+  <name>hadoop.ib.enabled</name>
+  <value>false</value>
+  <description>Enable the RDMA feature over IB. Default value of
+hadoop.ib.enabled is true.</description>
+</property>
+<property>
+  <name>hadoop.roce.enabled</name>
+  <value>false</value>
+  <description>Enable the RDMA feature over RoCE. Default value
+of hadoop.roce.enabled is false.</description>
+</property>
 </configuration>

@@ -161,5 +161,11 @@
   </description>
 </property>
 
+<property>
+  <name>dfs.master</name>
+  <value>HADOOP_MASTER_HOST</value>
+  <description>Hostname of dfs master.</description>
+</property>
+
 </configuration>
 

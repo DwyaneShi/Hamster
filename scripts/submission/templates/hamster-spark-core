@@ -1,0 +1,7 @@
+############################################################################
+# SPARK CORE
+############################################################################
+
+export SPARK_VERSION="SPARKVERSION"
+export SPARK_SETUP=n
+export SPARK_HOME="HADOOPDIRPREFIX/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION%.*}"
