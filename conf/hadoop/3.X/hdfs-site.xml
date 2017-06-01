@@ -210,25 +210,18 @@ In some workloads, the data written to HDFS is known to be significantly large e
 </property>
 
 <property>
-    <name>dfs.client.policy.new-design.enabled</name>
-    <value>true</value>
+    <name>dfs.client.policy.ec.optimization.mode</name>
+    <value>ecs</value>
     <decription>
-    Whether enable new design when HDFS is setting up
+    Enable which ec optimization mode once HDFS is setup. Supported modes: dummy, default, ecs, ecss
     </decription>
 </property>
 
 <property>
-    <name>dfs.client.write.max-running-ec-threads</name>
+    <name>dfs.client.policy.ec.optimization.num-threads</name>
     <value>1</value>
     <decription>
+    The number of threads paralleling in ec optimization mode
     </decription>
 </property>
-
-<property>
-    <name>dfs.client.write.max-waiting-ec-jobs</name>
-    <value>64</value>
-    <decription>
-    </decription>
-</property>
-
 </configuration>

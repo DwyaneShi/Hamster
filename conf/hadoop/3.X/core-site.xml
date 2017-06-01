@@ -79,31 +79,31 @@
   </description>
 </property>
 <property>
-<name>io.erasurecode.codec.rs-default.rawcoder</name>
-<value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactory</value>
-<description>
-Erasure Coding
-</description>
+  <name>io.erasurecode.codec.rs-default.rawcoder</name>
+  <value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactory</value>
+  <description>
+    Erasure Coding
+  </description>
 </property>
 <property>
-<name>io.erasurecode.codec.rs-legacy.rawcoder</name>
-<value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactoryLegacy</value>
-<description>
-Erasure Coding
-</description>
+  <name>io.erasurecode.codec.rs-legacy.rawcoder</name>
+  <value>org.apache.hadoop.io.erasurecode.rawcoder.RSRawErasureCoderFactoryLegacy</value>
+  <description>
+    Erasure Coding
+  </description>
 </property>
 <property>
-<name>io.erasurecode.codec.rs-native.rawcoder</name>
-<value>org.apache.hadoop.io.erasurecode.rawcoder.NativeRSRawErasureCoderFactory</value>
-<description>
-Erasure Coding
-</description>
+  <name>io.erasurecode.codec.rs-native.rawcoder</name>
+  <value>org.apache.hadoop.io.erasurecode.rawcoder.NativeRSRawErasureCoderFactory</value>
+  <description>
+    Erasure Coding
+  </description>
 </property>
 <property>
-<name>io.erasurecode.codec.rs-offload.rawcoder</name>
-<value>org.apache.hadoop.io.erasurecode.rawcoder.MellanoxRSRawErasureCoderFactory</value>
-<description>
-Erasure Coding
-</description>
+  <name>io.erasurecode.codec.rs-offload.rawcoder</name>
+  <value>org.apache.hadoop.io.erasurecode.rawcoder.MellanoxRSRawErasureCoderFactory</value>
+  <description>
+    Erasure Coding
+  </description>
 </property>
 </configuration>
